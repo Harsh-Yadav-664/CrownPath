@@ -193,9 +193,9 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 
 ## 9. Scope tiers (cut from the bottom; never polish a lower tier while a higher one is unproven)
 
-**P0 — the winning demo (must have):** FalkorDB running; schema + findings loader; synthetic data loaded; query 7a working; a basic agent loop returning a ranked, path-cited answer; the path shown (FalkorDB Browser is fine). A flawless short video of this beats anything half-built.
+**P0 — the winning demo (must have):** FalkorDB running; schema + findings loader; synthetic data loaded; query 7a working; the choke-point analysis (7c — the headline "fix X → sever N of M paths"); a basic agent loop returning a ranked, path-cited answer; the path shown (FalkorDB Browser is fine). A flawless short video of this beats anything half-built. *(7c is P0: it is the demo money-shot, and its primary method is a deterministic count over 7a paths — it depends only on 7a, not on the MCP server or custom UI.)*
 
-**P1 — differentiators:** the MCP server; the choke-point analysis (7c — the headline); a small custom UI highlighting the path.
+**P1 — differentiators:** the MCP server; a small custom UI highlighting the path.
 
 **P2 — bonus (only if P0+P1 are solid):** Graphiti-on-FalkorDB memory → adds **Track 02** ("remembers this asset regressed since last scan"); live deployment; recording against the self-hosted vulnerable app.
 
