@@ -159,13 +159,15 @@ Mark at least one `Asset {is_crown_jewel:true, value:…}` and one anonymous int
 **7a. Attack paths from an anonymous entry to a crown jewel** (multi-hop; breaks without the graph):
 ```cypher
 MATCH path = (e:Endpoint {auth_required:false})
-      -[:HAS_FINDING|LEADS_TO|GRANTS|CAN_ACCESS|CONNECTS_TO*1..8]->
+      -[:EXPOSES|HAS_FINDING|LEADS_TO|GRANTS|CAN_ACCESS|CONNECTS_TO*1..8]->
       (j:Asset {is_crown_jewel:true})
 RETURN path
 ORDER BY length(path) ASC
 LIMIT 10
 ```
 Refine edge set/direction during the build; the invariant is multi-hop reachability from entry to crown jewel.
+
+**Edge-set decision (made during Phase-1 planning, 2026-10-18):** `EXPOSES` (Asset→Endpoint) was added to the traversal set above. Reason: with the originally-listed set (`HAS_FINDING|LEADS_TO|GRANTS|CAN_ACCESS|CONNECTS_TO`), the only edge pointing *into* a `Finding` is `Endpoint-[:HAS_FINDING]->Finding`, so once a path reached an `Asset` it could never descend into that asset's endpoints and their findings — an interior finding such as an IDOR on an internal authenticated endpoint could never lie on any path, and multi-finding chains (the whole premise, §2) would be impossible. Adding `EXPOSES` lets a path go `…→Asset-[:EXPOSES]→Endpoint-[:HAS_FINDING]→Finding→…`. `INSTANCE_OF` and `CHAINS_TO` remain excluded from traversal (a `Technique` node has no outgoing edge that reaches an `Asset`, so it is a dead branch for reachability; those edges serve explanation, not pathfinding). The spike issue confirms this live on the demo graph.
 
 **7b. Shortest / highest-value path** — use FalkorDB's shortest-path support and score paths by `∏ finding.confidence × jewel.value ÷ length(path)` so ranking reflects *likelihood × impact*, not severity.
 
