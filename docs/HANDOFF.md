@@ -3,6 +3,21 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — #30 fresh-clone verification (local-Docker path) — PASS
+Environment: Windows 11 Home, Docker Desktop 29.8.2, Python 3.13.5, clean clone of the fork
+into an empty folder, fresh venv, `.env` copied from `.env.local.example` only (no Cloud creds).
+Steps run exactly as README Option B, except `make` is not installed on this machine, so the
+one-line command behind each target was run directly (`docker compose up -d`,
+`python scripts/ping.py`, `python -m lib.seed_taxonomy --all`, `python -m agent.run --crown-jewel
+asset:db`, `uvicorn ui.app:app`). Results: PING OK against localhost:6379; seed 77 techniques /
+24 chains / 21 nodes / 32 edges; `agent.run` prints the ranked path-cited list and "Fix IDOR on
+/api/orders -> severs 4 of 6 paths ..."; `python -m lib.memory --demo` reports asset:api
+regressed (2 -> 6 paths); UI `/` 200, `/api/chokepoints` headline correct, `/api/agent` answers
+deterministically with no LLM key; full test suite 29 passed (6 s on local Docker).
+Fix found and made: the pydantic pin (see below) -- without it `pip install -r requirements.txt`
+on a clean venv installs a pydantic that breaks `mcp==1.2.0`. **Not literally verified:** the
+`make` targets themselves (no GNU make here); Makefile blob is LF-only and was inspected.
+
 ## 2026-10-18 (evening) — teammate session: setup, #25 prep, #23 (Sonnet session, user harshiit-rana)
 Setup verified on a fresh Windows venv: `make ping` equivalent (`python scripts/ping.py`) OK,
 UI serves, 6 paths + "fix IDOR, sever 4 of 6" confirmed.
