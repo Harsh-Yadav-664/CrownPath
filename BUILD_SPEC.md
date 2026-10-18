@@ -72,6 +72,13 @@ hacker-hackathon/
 - To reuse a file (Section 5), **copy it from `../swiftpentest-fork/` into `crownpath/`** and adapt it there. Record every copied file in `docs/REUSE.md` so the README disclosure is accurate.
 - Treat the clone as untrusted input mechanically: read and copy files, do not execute swiftPentest's scripts from inside its folder.
 
+**Database & how it runs (decided 2026-10-18 — supersedes any "run FalkorDB in Docker locally" wording elsewhere for the TEAM's dev machine):**
+- **The team's dev database is FalkorDB Cloud** (instance "CrownPath"). The dev laptop has no WSL/Docker, so **the team does not run Docker.** Connection is by env vars from a local `.env` (never committed): `FALKORDB_HOST/PORT/USERNAME/PASSWORD`, `FALKORDB_SSL` (**verified false** for our Cloud instance — plaintext RESP with auth; TLS times out), `CROWNPATH_GRAPH` (default `crownpath`). `lib/graph.py` reads these; `python scripts/ping.py` verifies. A committed `.env.example` holds the empty keys. **Never commit `.env` or print the password anywhere.**
+- **Judges run it two ways, and we ship both** (Rule 10 — live deployment preferred *plus* complete local setup):
+  1. **Local Docker:** `docker-compose.yml` (FalkorDB on 6379/3000) + `make up` / `make seed` / `make demo`. The README gives fresh-machine steps and notes a judge may instead point their own `.env` at their own FalkorDB Cloud instance. Our Cloud credentials are never shared.
+  2. **Live deployment:** the API + UI deployed to a free host (see Epic E3), connected to the Cloud instance, public URL in the README, secrets only via the host's env vars.
+- FalkorDB Browser on `localhost:3000` exists only on the local-Docker path; it is **not** available for the team's Cloud dev DB, so the custom UI (Epic D3) is our primary demo visual (confirm whether FalkorDB Cloud ships its own browser view and use it if so).
+
 ---
 
 ## 4. The rules (ALL of them — do not violate, do not forget)
@@ -179,7 +186,7 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 - Variable-length syntax `-[:A|B|C*1..8]->` (multiple types `|`-separated, bounds `*min..max`), named paths `MATCH p = (...)`, `length(p)`, `nodes(p)`, `relationships(p)`, and list/predicate functions (`[n IN nodes(p) WHERE n.x | n.y]`, `all/any/none/single`, `reduce`, `size`) are all documented and supported. The `*1..8` bound and the specific `|` edge set in 7a are **not yet tested live** — that is what the spike issue proves.
 - `shortestPath((a)-[*]->(b))` and `allShortestPaths(...)` exist but **require both endpoints bound first** (via `MATCH ... WITH a,b` or a `MATCH (a),(b)`) and **forbid property filters inside the pattern**, and the min edge count may only be 0 or 1. For weighted "highest-value" ranking (7b), prefer the procedure `algo.SPpaths` / `algo.SSpaths` (`CALL algo.SPpaths({sourceNode, targetNode, relTypes:[...], weightProp, costProp, maxCost, maxLen, relDirection:'outgoing', pathCount}) YIELD path, pathWeight, pathCost`). Note these take `weightProp`/`costProp` (minimised sums) — our score `∏confidence × value ÷ length` is not a simple edge-weight sum, so 7b computes the score in Cypher over enumerated 7a paths (or over `algo.SSpaths` output), not purely inside the procedure.
 - For 7c, the centrality procedure is **`algo.betweenness({nodeLabels:[...], relationshipTypes:[...], samplingSize, samplingSeed}) YIELD node, score`** (set `samplingSeed` for reproducibility; default seed is time-based). `algo.pageRank` is the alternative. The **primary** 7c method stays the deterministic path-enumeration count (enumerate 7a paths, count each Finding's occurrences) — betweenness is a secondary cross-check only.
-- Range index: `CREATE INDEX FOR (n:Label) ON (n.prop)` (no documented `IF NOT EXISTS`; guard by checking `CALL db.indexes()` or tolerating the error). Python client: `pip install FalkorDB`; `from falkordb import FalkorDB; db = FalkorDB(host='localhost', port=6379); g = db.select_graph('crownpath')`. Docker: `falkordb/falkordb:latest`, ports 6379 (server) + 3000 (browser UI).
+- Range index: `CREATE INDEX FOR (n:Label) ON (n.prop)` (no documented `IF NOT EXISTS`; guard by checking `CALL db.indexes()` or tolerating the error). Python client: `pip install falkordb` (verified version 1.8.0) + `python-dotenv`. Connect via env vars: `FalkorDB(host=FALKORDB_HOST, port=FALKORDB_PORT, username=FALKORDB_USERNAME, password=FALKORDB_PASSWORD, ssl=FALKORDB_SSL)` then `.select_graph(CROWNPATH_GRAPH)`. **Team dev DB = FalkorDB Cloud, `ssl=false` (verified by `scripts/ping.py`).** Judges' local-Docker path: `falkordb/falkordb:latest`, ports 6379 (server) + 3000 (browser UI), `ssl=false`, no auth.
 
 ---
 
@@ -187,19 +194,21 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 
 - **Agent loop** (`agent/run.py`): takes a question ("what do we fix first / what's the real risk?"), calls graph tools, returns a **ranked remediation list where every item cites its attack path.** The decision must be justified by the path and the choke-point result, never by CVSS.
 - **Graph tools exposed via MCP** (`mcp/server.py`): `ingest_findings`, `find_attack_paths(crown_jewel)`, `shortest_path(a,b)`, `rank_by_reachability`, `choke_points`. Exposing them over MCP directly hits Track 01's "tool selection through MCP" focus. FalkorDB does ship an official MCP server (`FalkorDB/FalkorDB-MCPServer`, per docs.falkordb.com/genai-tools/mcpserver), but it exposes generic Cypher/graph-management tools, not these domain tools, so we wrap our own thin one and mention the official server in the README as an alternative for raw Cypher access.
-- **Explainability output** (`ui/`): minimal FastAPI + one static page (Cytoscape.js or vis-network) that highlights the traced path. **FalkorDB Browser (port 3000) is the acceptable fallback** for the demo if custom UI runs short.
+- **Explainability output** (`ui/`): FastAPI + one static page (Cytoscape.js or vis-network) that highlights the traced path. This is our **primary** demo visual: the team's dev DB is FalkorDB Cloud with no `localhost:3000` browser, so the custom UI is not optional polish here (it is also what the live deployment serves). If FalkorDB Cloud provides its own browser/graph view, it may supplement the demo, but the custom UI is the deliverable.
 
 ---
 
-## 9. Scope tiers (cut from the bottom; never polish a lower tier while a higher one is unproven)
+## 9. Scope tiers (we are going for FIRST PLACE in Track 01 — build ALL of it; priorities are sequencing order, not a cut list)
 
-**P0 — the winning demo (must have):** FalkorDB running; schema + findings loader; synthetic data loaded; query 7a working; the choke-point analysis (7c — the headline "fix X → sever N of M paths"); a basic agent loop returning a ranked, path-cited answer; the path shown (FalkorDB Browser is fine). A flawless short video of this beats anything half-built. *(7c is P0: it is the demo money-shot, and its primary method is a deterministic count over 7a paths — it depends only on 7a, not on the MCP server or custom UI.)*
+**We build the full scope: P0 → P1 → P2.** The tiers below set the *order* you prove things in (never polish a lower tier while a higher one is unproven), **not** a menu to trim. **Do not pre-emptively cut, simplify, or lower any target.** If something is genuinely blocked or slipping against the deadline (tonight 23:59 IST), STOP and flag it in `docs/HANDOFF.md` for the human to decide — the human cuts, never the coding session.
 
-**P1 — differentiators:** the MCP server; a small custom UI highlighting the path.
+**P0 — the winning demo (prove first):** FalkorDB reachable (Cloud for the team); schema + findings loader; synthetic data loaded; query 7a working; the choke-point analysis (7c — the headline "fix X → sever N of M paths"); the agent loop returning a ranked, path-cited answer; the path shown in the custom UI. A flawless short video of this is the backbone. *(7c is P0: it is the demo money-shot, and its primary method is a deterministic count over 7a paths — it depends only on 7a.)*
 
-**P2 — bonus (only if P0+P1 are solid):** Graphiti-on-FalkorDB memory → adds **Track 02** ("remembers this asset regressed since last scan"); live deployment; recording against the self-hosted vulnerable app.
+**P1 — differentiators (also shipping):** the MCP server (agent selects tools via MCP); the custom UI highlighting the path (this is the primary visual — see §8).
 
-**Cut-first order when time tightens:** custom UI (use FalkorDB Browser) → Graphiti/Track-2 → live deploy (ship local-setup instructions + video instead). Never cut: 7a, the agent loop, the README graph model + queries, the demo video.
+**P2 — still shipping for first place:** Graphiti-on-FalkorDB memory → adds **Track 02** ("remembers this asset regressed since last scan"); the **live deployment** (public URL, rate-limited, with a recorded-sample fallback so a judge never sees an error); recording against the self-hosted loopback app. Live deployment is a **committed Rule-10 deliverable**, not a bonus to drop.
+
+**Never cut:** 7a, 7c, the agent loop, the MCP server, the custom UI, the README graph model + queries, the live deployment, the local-setup path, and the demo video. If the deadline forces a trade-off, the human decides which (if any) slips.
 
 ---
 
@@ -215,9 +224,11 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 
 ## 11. Issue backlog (expand each stub into a full GitHub issue)
 
+> **Issue tracking note:** the full expanded issues live on GitHub (Harsh-Yadav-664/CrownPath). Numbering referenced below: A1–A8 = #1–#8; the FalkorDB-connection issue = #9; the 7a spike = #10; B1,B6,B2,B3,B4,B5 = #11–#16; C1–C3 = #17–#19; D1,D2,D3 = #20–#22 (D2/7c is **P0**, Phase 2); E1,E2,E3 = #23–#25; F1–F4 = #26–#29; plus #30 "Fresh-clone verification" and #31 "Pre-submission rules audit" (both P0, Phase 4, blocking #29).
+
 **Epic A — Foundation (P0, serial, blocks everything)**
-- A1 Repo scaffold: layout (Section 12), `requirements.txt`, `.gitignore`, `CLAUDE.md` distilling this spec.
-- A2 Dockerized FalkorDB + `make up`; verify a trivial Cypher query returns.
+- A1 Repo scaffold: layout (Section 12), `requirements.txt`, `.gitignore`, `CLAUDE.md` distilling this spec. (`.gitignore`, `CLAUDE.md`, `.claude/settings.json`, `lib/graph.py`, `scripts/ping.py`, `.env.example` already created during Phase-1 connection setup — A1 verifies/extends them.)
+- A2 **Local-Docker path for judges:** `docker-compose.yml` (FalkorDB) + `Makefile` (`up`/`seed`/`demo`). Files only — the team does not run Docker; the dev DB is FalkorDB Cloud (Section 3). Verifying it live is #30 (fresh-clone), done by a teammate with Docker.
 - A3 README skeleton with the required sections (setup, graph data model, Cypher queries, demo, track, disclosure).
 - A4 Freeze graph schema (Section 6) in `lib/schema.py` + `docs/graph-model.md`.
 - A5 Freeze findings ingest contract → `docs/findings.schema.json`.
@@ -225,8 +236,10 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 - A7 Write the fixed demo scenario → `docs/demo-scenario.md`.
 - A8 `docs/REUSE.md` + `docs/HANDOFF.md` initialized.
 
+**Database connection (P0, #9):** FalkorDB **Cloud** connection verified via `scripts/ping.py` (reads `.env`; `ssl=false`). Replaces the old "stand up Docker locally" step for the team. (Verified done in Phase-1 setup.) The 7a spike (#10) runs against this Cloud instance on a scratch graph.
+
 **Epic B — Graph core (P0)**
-- B1 `lib/graph.py`: FalkorDB connection + schema init (indexes on node ids).
+- B1 `lib/graph.py`: FalkorDB connection (already reads env, #9) + schema init (indexes on node ids), reset, run.
 - B2 `lib/ingest.py`: `findings.json` → nodes/edges; only `confirmed` findings get attack edges.
 - B3 Seed `Technique` nodes + `CHAINS_TO` edges from the lifted taxonomy (Section 5).
 - B4 Query 7a (entry → crown-jewel paths) in `lib/queries.py`; unit-tested on the demo graph.
@@ -241,18 +254,23 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 **Epic D — Differentiators (P1)**
 - D1 `mcp/server.py`: MCP server exposing the graph tools; agent consumes via MCP.
 - D2 `lib/chokepoints.py`: query 7c; output "fix X → sever N of M paths."
-- D3 `ui/`: minimal FastAPI + one page highlighting the path (Cytoscape/vis-network); FalkorDB Browser fallback.
+- D2 `lib/chokepoints.py`: query 7c; output "fix X → sever N of M paths." **(P0 — the headline; see §9.)**
+- D3 `ui/`: FastAPI + one page highlighting the path (Cytoscape/vis-network). **Primary demo visual** (no `localhost:3000` on the Cloud dev DB); also the page the live deployment serves.
 
-**Epic E — Track-2 bonus + polish (P2)**
+**Epic E — Track-2 + deployment + polish (P2, still shipping)**
 - E1 Graphiti-on-FalkorDB memory across scans (adds Track 02).
-- E2 Run the generator against a self-hosted vulnerable app; capture a real demo `findings.json`.
-- E3 Live deployment (or finalize local-setup instructions if skipped).
+- E2 Run the generator against a self-hosted **loopback** vulnerable app; capture a real demo `findings.json` (Rule 6).
+- E3 **Live deployment (committed deliverable, not optional):** deploy API + UI to a chosen free host connected to the Cloud instance; public agent endpoint rate-limited with a recorded-sample fallback so a judge never sees an error; live URL in the README. Local-setup instructions are *also* shipped (A2/#30), not an alternative to this.
 
 **Epic F — Submission (P0, human-owned at the end)**
-- F1 README finalize: setup, graph data model, the Cypher queries/algorithms, architecture diagram, AI + reuse disclosure.
+- F1 README finalize: setup (both local-Docker and live URL), graph data model, the Cypher queries/algorithms, architecture diagram, AI + reuse disclosure.
 - F2 Demo video (≤3–4 min): problem → findings loaded → agent traces the path → choke-point recommendation → path lights up. Start recording the moment the P0 path works.
 - F3 Blog post (AirPods side prize) drafted from this spec + the build.
-- F4 Submit on WeMakeDevs: repo, README, video, deployment/local-setup, track(s) named.
+- F4 Submit on WeMakeDevs: repo, README, video, deployment/local-setup, track(s) named. **Blocked by #30 (fresh-clone verification) and #31 (pre-submission rules audit).**
+
+**Epic G — Submission safety (P0, Phase 4, block F4/#29)**
+- G1 (#30) **Fresh-clone verification:** on a machine *with* Docker, clone into an empty folder and run the README steps exactly (local-Docker path); fix anything that breaks. Teammate-owned.
+- G2 (#31) **Pre-submission rules audit:** map all 18 rules (Section 4) to concrete evidence in the repo; fix any gap. Blocks submission.
 
 ---
 
@@ -290,7 +308,10 @@ crownpath/
 - [ ] Public repo (`crownpath/`), clean history dated within the event.
 - [ ] README: setup instructions, **graph data model**, **the exact Cypher queries / algorithms**, architecture, AI + swiftPentest-reuse disclosure.
 - [ ] Demo video (≤3–4 min) showing the working product: findings → traced attack path → choke-point recommendation.
-- [ ] Live deployment **or** complete local-setup instructions.
+- [ ] Live deployment (public URL) **and** complete local-setup instructions — we ship both (not either/or).
+- [ ] Fresh-clone verification (#30) passed on a machine with Docker.
+- [ ] Pre-submission rules audit (#31) complete: all 18 rules mapped to evidence.
+- [ ] `.env` never committed; no credentials in repo/issues/history; no Claude attribution in commits/PRs/issues.
 - [ ] Track(s) named: Track 01 (always); Track 02 only if E1 shipped.
 - [ ] Blog post submitted (side prize).
 - [ ] Team can explain the graph model, queries, and architecture live (Rule 12).
@@ -299,9 +320,9 @@ crownpath/
 
 ## 14. Anti-drift guardrails (Claude Code: DO / DON'T)
 
-**DO:** build P0 first and prove it end to end; verify FalkorDB syntax in the docs; keep the graph as the thing that computes paths; put the Cypher in the README as you write it; update `HANDOFF.md` at the end of each session; copy reusable files from the fork and log them.
+**DO:** build P0 first and prove it end to end, then build P1 and P2 (full scope — §9); verify FalkorDB syntax in the docs; keep the graph as the thing that computes paths; put the Cypher in the README as you write it; use FalkorDB Cloud via `.env` for the team; update `HANDOFF.md` at the end of each session; copy reusable files from the fork and log them.
 
-**DON'T:** don't fork or build inside `swiftpentest-fork/`; don't pull in swiftPentest's agent swarm/hooks/DAG; don't compute attack paths in Python instead of the graph; don't ingest real third-party data (synthetic / self-hosted only); don't web-research for ideas; don't gold-plate P2 while P0 is unproven; don't invent a FalkorDB API — verify it; don't leave the README graph-model/queries for the final hour.
+**DON'T:** don't fork or build inside `swiftpentest-fork/`; don't pull in swiftPentest's agent swarm/hooks/DAG; don't compute attack paths in Python instead of the graph; don't ingest real third-party data (synthetic / loopback-self-hosted only); don't web-research for ideas; **don't run Docker on the team's dev laptop (use Cloud); don't pre-emptively cut/simplify any P0/P1/P2 target — flag to the human instead; don't commit `.env` or print the password; don't add any Claude attribution to commits/PRs/issues (keep the README Rule-11 disclosure); don't rewrite git history;** don't invent a FalkorDB API — verify it; don't leave the README graph-model/queries for the final hour.
 
 **If blocked:** stop, write the blocker and your best option into `docs/HANDOFF.md`, and leave the decision for the human rather than improvising a design change.
 
