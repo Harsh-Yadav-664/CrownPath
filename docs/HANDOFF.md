@@ -3,6 +3,84 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — #20 resolved, #18 provider-agnostic path, TEAMMATE_RUNBOOK.md (Sonnet session)
+Picked up directly from the #20 blocker flagged in the previous session's entry below.
+Human gave an explicit 3-part instruction: resolve #20 with the rename option, add
+provider-agnostic LLM code for #18 (unrun, mocked tests only), write a runbook for a
+teammate to finish the rest. Did exactly those three, in order, then stopped per
+instruction — did not continue into Epic E/F/G work itself.
+
+DONE:
+  - **#20 (D1 MCP server) — blocker resolved, issue closed.** Renamed the package
+    `mcp/` -> `crownpath_mcp/` (`git mv`), which was the human-authorized fix for the
+    import collision with the third-party `mcp` SDK documented in the blocker entry
+    below. Built `crownpath_mcp/server.py`: a stdio MCP server (`mcp.server.Server`,
+    `stdio_server()`) exposing the same 5 `lib.tools` functions as MCP tools
+    (`TOOL_DEFS`/`TOOL_FUNCTIONS`). Updated every reference to the old path:
+    `BUILD_SPEC.md` §8, the D1 backlog bullet, and §12's repo-layout tree (added a note
+    pointing back to this file); added `crownpath_mcp/README.md` documenting the rename
+    and the tools table. Added `pytest-asyncio==0.25.2` to requirements.txt.
+    Verified live (not just unit-tested): direct import confirms `import mcp` now
+    resolves to the real SDK (`site-packages/mcp/__init__.py`), not our own code;
+    `tests/test_mcp_server.py` drives the server through an in-process MCP client
+    session (`mcp.shared.memory.create_connected_server_and_client_session`) and
+    confirms `list_tools()` returns all 5 names and `call_tool("choke_points", ...)`
+    returns the live `f:idor`/4-of-6 result against FalkorDB Cloud; a raw
+    `python -m crownpath_mcp.server` stdio smoke test exits clean on EOF. Full suite:
+    15/15 passed. Committed as `6c4e995` ("Closes #20: ..."), pushed; commented on #20
+    with the verification detail; auto-closed by the commit.
+  - **#18 (C2 agent) — provider-agnostic LLM path added, left OPEN (as instructed).**
+    `agent/run.py` gained `run_with_provider_llm()`: a tool-use loop over any
+    OpenAI-compatible chat API, configured via `LLM_BASE_URL`/`LLM_MODEL`/`LLM_API_KEY`.
+    Refactored so BOTH the existing Anthropic path (`run_with_llm`) and the new one
+    bridge their tool schemas from the single source of truth,
+    `crownpath_mcp.server.MCP_TOOL_DEFS` (via new `_anthropic_tool_defs()` /
+    `_openai_tool_defs()` converters) and dispatch through
+    `crownpath_mcp.server.TOOL_FUNCTIONS` — one schema edit now fixes tool selection
+    for every path, agent/run.py no longer carries its own duplicate TOOL_DEFS. `main()`
+    now tries, in order: `ANTHROPIC_API_KEY` -> `LLM_API_KEY`+`LLM_BASE_URL` ->
+    `--no-llm` deterministic fallback (unchanged, still the committed P0 path). Added
+    `openai==2.3.0` to requirements.txt (already installed locally; confirmed on PyPI).
+    Unit-tested with a MOCKED OpenAI-compatible client (`tests/test_agent_provider.py`,
+    3 tests, no network) — the mock stands in only for the LLM call itself; the tool
+    calls it triggers (e.g. `choke_points`) run for real against the live FalkorDB demo
+    graph, confirming the bridge actually dispatches correctly. Full suite after this
+    change: 18/18 passed.
+    **Research caveat (why #18 stays open):** could not fully confirm current
+    OpenAI-compatible model IDs for Gemini or Groq against primary docs in this session
+    — WebSearch kept returning third-party/secondary sources. Put best-effort defaults
+    in `.env.example` with explicit "verify before relying on this" notes:
+    Gemini `LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`,
+    `LLM_MODEL=gemini-2.5-flash`; Groq `LLM_BASE_URL=https://api.groq.com/openai/v1`,
+    `LLM_MODEL=openai/gpt-oss-120b` (chosen over `llama-3.3-70b-versatile` because
+    secondary sources reported Groq deprecating that model on the free tier in
+    mid-2026 — unconfirmed firsthand). **The provider-agnostic path was never run
+    against a real provider** — no API key available in this environment. Commented on
+    #18 with the exact gap (model-ID currency, a real end-to-end run, and the
+    never-run-either Anthropic path) for whoever picks it up with a key — see
+    `docs/TEAMMATE_RUNBOOK.md` §§0-1 for the exact steps. Committed as `f23857a`
+    ("Re #18: ..." — deliberately not "Closes", issue left open), pushed.
+  - **`docs/TEAMMATE_RUNBOOK.md` written** (`605e81c`): click-by-click steps for a human
+    teammate to finish everything left — `.env`/LLM-key setup, verifying the live LLM
+    path with 5 runs + saving `docs/sample-run.md`, the Render deploy (#25, including
+    `render.yaml`, rate-limiting, and the recorded-sample fallback so a judge never sees
+    an error), #23 (Graphiti/native memory, Track 02, with the 1-2hr Graphiti timebox
+    called out), #24 (loopback capture, with the Rule-6 loopback-only guard called out),
+    #26 (README finalize checklist), #30 (fresh-clone-on-Docker verification — flagged
+    as needing a machine other than the primary dev laptop, which has no Docker), #31
+    (rules audit table structure + what to spot-check), #27 (demo video beat sheet),
+    #28 (optional blog post), #29 (final submission checklist + deadline). Ends with a
+    reminder not to improvise around blockers and to log them here the same way #20 was.
+NEXT: Everything in `docs/TEAMMATE_RUNBOOK.md`, in the order it's written there — start
+  with §0/§1 (get a real LLM key, verify the live path, close out #18 for real) since
+  that's the one actual gap left from P0/P1, then the Render deploy (§2/#25), then the
+  optional P2 items (§3 #23, §4 #24) only if time allows, then README finalize (§5/#26),
+  fresh-clone check (§6/#30), rules audit (§7/#31), video (§8/#27), optional blog (§9/#28),
+  and finally submit (§10/#29) before Oct 18 2026 23:59 IST.
+BROKEN/blocked: none now — #20's blocker is resolved. #18 is intentionally left open
+  (not broken, just not yet live-verified) with the gap documented on the issue and in
+  `docs/TEAMMATE_RUNBOOK.md` §1.
+
 ## 2026-10-18 — Issue #22 (Sonnet session, continued): D3 UI — Epic D at 2/3 (D1 blocked)
 DONE: ui/app.py (FastAPI: `/`, `/api/graph`, `/api/paths`, `/api/chokepoints`, all reading
   the live graph through `lib.graph`/`lib.tools` — works against FalkorDB Cloud, no hardcoded
