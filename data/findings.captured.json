@@ -1,0 +1,125 @@
+{
+  "access": [
+    {
+      "asset_id": "asset:lab-db",
+      "identity_id": "id:user"
+    }
+  ],
+  "assets": [
+    {
+      "environment": "loopback",
+      "id": "asset:lab-web",
+      "is_crown_jewel": false,
+      "name": "Lab shop",
+      "type": "webapp",
+      "value": 30
+    },
+    {
+      "environment": "loopback",
+      "id": "asset:lab-db",
+      "is_crown_jewel": true,
+      "name": "Lab customer store",
+      "type": "database",
+      "value": 100
+    }
+  ],
+  "connections": [],
+  "endpoints": [
+    {
+      "asset_id": "asset:lab-web",
+      "auth_required": false,
+      "id": "ep:lab-search",
+      "method": "GET",
+      "url": "/search"
+    },
+    {
+      "asset_id": "asset:lab-web",
+      "auth_required": false,
+      "id": "ep:lab-go",
+      "method": "GET",
+      "url": "/go"
+    },
+    {
+      "asset_id": "asset:lab-web",
+      "auth_required": false,
+      "id": "ep:lab-git",
+      "method": "GET",
+      "url": "/.git/HEAD"
+    },
+    {
+      "asset_id": "asset:lab-web",
+      "auth_required": false,
+      "id": "ep:lab-item",
+      "method": "GET",
+      "url": "/item"
+    }
+  ],
+  "findings": [
+    {
+      "confidence": 0.9,
+      "cvss": 6.1,
+      "cwe": "CWE-79",
+      "discovered_at": "2026-10-18T12:18:33+00:00",
+      "endpoint_id": "ep:lab-search",
+      "evidence": "payload '<b id=cp2c222567>' reflected unescaped in /search (control reflected as text)",
+      "grants_identity_id": "id:user",
+      "id": "f:lab-xss",
+      "status": "confirmed",
+      "technique_id": "xss",
+      "title": "Reflected XSS on /search",
+      "vuln_type": "xss"
+    },
+    {
+      "confidence": 0.85,
+      "cvss": 5.0,
+      "cwe": "CWE-601",
+      "discovered_at": "2026-10-18T12:18:33+00:00",
+      "endpoint_id": "ep:lab-go",
+      "evidence": "/go redirected to attacker-chosen absolute URL (HTTP 302)",
+      "id": "f:lab-redirect",
+      "status": "confirmed",
+      "technique_id": "open-redirect",
+      "title": "Open redirect on /go",
+      "vuln_type": "open_redirect"
+    },
+    {
+      "confidence": 0.95,
+      "cvss": 5.3,
+      "cwe": "CWE-538",
+      "discovered_at": "2026-10-18T12:18:33+00:00",
+      "endpoint_id": "ep:lab-git",
+      "evidence": "/.git/HEAD served repository metadata",
+      "id": "f:lab-git",
+      "status": "confirmed",
+      "technique_id": "source-exposure",
+      "title": "Exposed /.git/HEAD",
+      "vuln_type": "info_disclosure"
+    },
+    {
+      "confidence": 0.8,
+      "cvss": 9.0,
+      "cwe": "CWE-89",
+      "discovered_at": "2026-10-18T12:18:33+00:00",
+      "endpoint_id": "ep:lab-item",
+      "evidence": "a single quote in id= produced a SQL error that the control (id=1) did not",
+      "id": "f:lab-sqli",
+      "leads_to_asset_id": "asset:lab-db",
+      "status": "confirmed",
+      "technique_id": "sqli",
+      "title": "SQL injection on /item",
+      "vuln_type": "sqli"
+    }
+  ],
+  "identities": [
+    {
+      "id": "id:anon",
+      "privilege_level": 0,
+      "role": "anonymous"
+    },
+    {
+      "id": "id:user",
+      "privilege_level": 1,
+      "role": "user"
+    }
+  ]
+}
