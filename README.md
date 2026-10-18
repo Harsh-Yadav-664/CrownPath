@@ -208,7 +208,7 @@ Python 3.10+ (developed on 3.13). Every option below ends with the same three co
 
 ### Option A — Live demo
 
-**Live URL: <https://crownpath-st2u.onrender.com/>** (Render free tier: the first request after idle can take about a minute to wake).
+**Live URL: <https://crownpath-v9kt.onrender.com/>** (Render free tier: the first request after idle can take about a minute to wake).
 The page shows the graph, traces the 6 paths, highlights the choke point and has an
 "Ask the agent" panel. The agent endpoint is rate-limited and falls back to a recorded sample
 run, so it never shows an error.

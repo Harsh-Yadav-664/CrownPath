@@ -5,7 +5,7 @@ Every number below is what the frozen demo produces, so it is the same on every 
 
 ## Before you record
 
-- Open https://crownpath-st2u.onrender.com/ two minutes early (the free instance sleeps). It must show
+- Open https://crownpath-v9kt.onrender.com/ two minutes early (the free instance sleeps). It must show
   the hero "8 findings. Sort them by CVSS and you fix the wrong thing." If it still shows the older
   page, the deploy hasn't picked up main yet (see `docs/HANDOFF.md`); record locally with `make ui`
   -> http://localhost:8000 instead.
@@ -14,7 +14,7 @@ Every number below is what the frozen demo produces, so it is the same on every 
 - Browser at 100% zoom, about 1440x900, no other tabs. Have a Git Bash terminal open in the repo.
 - Pre-load the beat-6 graph once so the take doesn't wait on it (it uses its own graph, never the live one):
   `CROWNPATH_GRAPH=crownpath_captured python -m lib.seed_taxonomy --all --findings data/findings.captured.json`
-- Button labels below match `ui/static/index.html` as of commit `737e098`; check them if the UI has changed since.
+- Button labels below match `ui/static/index.html` as of commit `48812ea` (v3 UI). "Source & queries" is now a link to the repo, not a button.
 
 ## The six beats
 
