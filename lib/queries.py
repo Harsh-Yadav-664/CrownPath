@@ -53,6 +53,8 @@ def _path_to_attack_path(path, crown_jewel_id):
     nodes = path.nodes()
     edges = path.edges()
     finding_ids = []
+    confidences = []
+    jewel_value = 1
 
     for i, node in enumerate(nodes):
         label = node.labels[0] if node.labels else ""
@@ -65,6 +67,7 @@ def _path_to_attack_path(path, crown_jewel_id):
         })
         if label == "Finding":
             finding_ids.append(node_id)
+            confidences.append(node.properties.get("confidence", 1.0))
         if i < len(edges):
             edge = edges[i]
             steps.append({
@@ -74,12 +77,21 @@ def _path_to_attack_path(path, crown_jewel_id):
                 "display": edge.relation,
             })
 
+    # terminal node's value, when present (the crown-jewel Asset).
+    if nodes:
+        jewel_value = nodes[-1].properties.get("value", 1)
+
     return {
         "steps": steps,
         "length": path.edge_count(),
-        "score": 0.0,  # filled by issue #16's 7b scorer
+        "score": 0.0,  # filled by score_path() / rank_paths() (issue #16)
         "finding_ids": finding_ids,
         "crown_jewel_id": crown_jewel_id,
+        # internal keys, not part of the public AttackPath TypedDict (lib/tools.py #6):
+        # used by score_path() so it stays a pure function over an AttackPath without
+        # a second graph round-trip.
+        "_confidences": confidences,
+        "_jewel_value": jewel_value,
     }
 
 
@@ -103,3 +115,68 @@ def find_attack_paths(g, crown_jewel_id=None, limit=10):
         attack_paths.append(_path_to_attack_path(path, jid))
 
     return attack_paths[:limit]
+
+
+def score_path(path):
+    """Query 7b score: prod(finding.confidence over the path) * jewel.value / length.
+
+    Pure function over an AttackPath produced by find_attack_paths(). Reads the
+    internal `_confidences` / `_jewel_value` keys that find_attack_paths() attaches
+    (not part of the public AttackPath TypedDict in lib/tools.py #6) rather than
+    re-querying the graph. Confirmed findings only ever appear on paths (non-confirmed
+    carry no attack edges), so every finding on a path has a confidence in (0, 1]."""
+    confidences = path.get("_confidences", [])
+    jewel_value = path.get("_jewel_value", 1)
+    length = path["length"] or 1
+
+    product = 1.0
+    for c in confidences:
+        product *= c
+
+    return (product * jewel_value) / length
+
+
+_ARBITRARY_PATH = f"""
+MATCH path = (a {{id:$from_id}})
+      -[:{_ATTACK_EDGE_PATTERN}*1..8]->
+      (b {{id:$to_id}})
+RETURN path
+"""
+
+
+def shortest_path(g, from_id, to_id):
+    """Query 7b building block: the highest-value path between two arbitrary nodes.
+
+    Enumerates candidate paths with a bounded variable-length match on the attack
+    edge set (*1..8), scores each with score_path, and returns the max-score one
+    (tie-break: shorter length wins), or None if no path exists."""
+    result = graph.run(g, _ARBITRARY_PATH, {"from_id": from_id, "to_id": to_id})
+
+    candidates = []
+    for row in result.result_set:
+        path = row[0]
+        jid = path.nodes()[-1].properties.get("id", "") if path.nodes() else to_id
+        candidates.append(_path_to_attack_path(path, jid))
+
+    if not candidates:
+        return None
+
+    for p in candidates:
+        p["score"] = score_path(p)
+
+    candidates.sort(key=lambda p: (-p["score"], p["length"]))
+    return candidates[0]
+
+
+def rank_paths(g, crown_jewel_id=None, limit=10):
+    """find_attack_paths() with score_path() applied, sorted by score DESC
+    (tie-break length ASC). What rank_by_reachability() (#17) builds remediations
+    from. Enumerates ALL paths (no pre-sort truncation) before ranking, then slices
+    to `limit` -- a path that is long but high-scoring must not be dropped by a
+    shortest-first cutoff before scoring runs."""
+    paths = find_attack_paths(g, crown_jewel_id=crown_jewel_id, limit=None)
+    for p in paths:
+        p["score"] = score_path(p)
+
+    paths.sort(key=lambda p: (-p["score"], p["length"]))
+    return paths[:limit] if limit else paths
