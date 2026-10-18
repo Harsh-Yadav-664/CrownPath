@@ -3,6 +3,31 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — Issues #15, #16, #17 (Sonnet session, continued): B4/B5/C1
+DONE:
+  - #15 (B4): lib/queries.py `find_attack_paths(g, crown_jewel_id, limit)` using the exact
+    verified 7a Cypher from docs/graph-model.md. Projects FalkorDB `Path` objects (inspected
+    live: `falkordb.path.Path` with `.nodes()`/`.edges()`, node `.labels`/`.properties`, edge
+    `.relation`/`.properties`) into the frozen AttackPath/PathStep shape. Confirmed live: exactly
+    6 paths, f:idor on 4/6, f:csrf on 0/6 — matches docs/demo-scenario.md exactly.
+    tests/test_queries_7a.py asserts the full path-id-sequence set.
+  - #16 (B5): added `score_path`, `shortest_path`, `rank_paths` to lib/queries.py. Scores match
+    the #10 spike's recorded values exactly (12.75, 9.92, 8.50, 7.08, 5.00, 4.00). Used internal
+    `_confidences`/`_jewel_value` keys on the AttackPath dict (documented as not part of the
+    public TypedDict) so score_path stays a pure function with no second graph round-trip.
+    `rank_paths` enumerates ALL paths before sorting (no pre-score truncation) then slices to
+    `limit`. tests/test_queries_7b.py passes.
+  - #17 (C1): implemented all 5 lib/tools.py functions behind the frozen #6 interface (lazy
+    singleton graph handle via `_get_graph()`). `rank_by_reachability` groups by finding
+    (best-scoring path each sits on) and writes a path-derived `reason` string — verified no
+    "cvss" substring appears in any reason. `choke_points` cleanly raises `NotImplementedError`
+    with a message naming #21/D2 (the one allowed temporary gap per the issue) until
+    lib/chokepoints.py lands. tests/test_tools.py passes; 9/9 tests green overall.
+NEXT: #21 (D2 choke-points, P0 headline) should go next — it unblocks the real choke_points()
+  body in lib/tools.py and is this project's money-shot. Then #18/#19 (C2/C3 agent loop +
+  formatter) can cite it. #20 (D1 MCP server) and #22 (D3 UI) are P1, after.
+BROKEN/blocked: none.
+
 ## 2026-10-18 — Issues #12, #14, #13 (Sonnet session, continued): B6/B3/B2
 DONE:
   - #12 (B6): data/gen_findings.py — deterministic generator transcribing docs/demo-scenario.md
