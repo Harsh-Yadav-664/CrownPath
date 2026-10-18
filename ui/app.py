@@ -18,6 +18,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from agent import format as agent_format
 from agent import run as agent_run
 from lib import graph, tools
 
@@ -116,7 +117,7 @@ def get_changes(since: str = "scan-1", until: str = "scan-2", crown_jewel: str =
 # returned with HTTP 200 and "sample_response": true so the UI can show a banner.
 SAMPLE_ANSWER_PATH = os.path.join("data", "sample_answer.json")
 AGENT_RATE_LIMIT = int(os.environ.get("AGENT_RATE_LIMIT_PER_MIN", "6"))
-AGENT_TIMEOUT_SECONDS = float(os.environ.get("AGENT_TIMEOUT_SECONDS", "40"))
+AGENT_TIMEOUT_SECONDS = float(os.environ.get("AGENT_TIMEOUT_SECONDS", "45"))
 
 # In-process sliding-window limiter, keyed by client IP (no extra dependency).
 _hits = collections.defaultdict(collections.deque)
@@ -124,7 +125,7 @@ _hits_lock = threading.Lock()
 # agent.run writes agent/last_answer.json; serialise so concurrent callers can't
 # read each other's output.
 _agent_lock = threading.Lock()
-_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=6)
 
 
 def _client_ip(request: Request):
@@ -154,27 +155,49 @@ def _sample_answer(reason):
     return {**sample, "sample_response": True, "source": "sample", "reason": reason}
 
 
-def _run_agent(question, crown_jewel):
-    """Pick the answer path from the env (Anthropic -> OpenAI-compatible ->
-    deterministic), then read back the structured result agent.run wrote."""
+LLM_BUDGET_SECONDS = float(os.environ.get("AGENT_LLM_BUDGET_SECONDS", "25"))
+
+
+def _deterministic(crown_jewel):
+    """Answer straight from the graph (no LLM, no shared file): the same tools and
+    formatter as `agent.run --no-llm`."""
+    agent_run._ensure_graph_loaded()
+    remediations = tools.rank_by_reachability(crown_jewel)
+    chokepoints = tools.choke_points(crown_jewel)
+    return {
+        "remediations": remediations,
+        "choke_points": chokepoints,
+        "answer": agent_format.format_answer(remediations, chokepoints),
+        "sample_response": False,
+        "source": "deterministic",
+    }
+
+
+def _llm(question, crown_jewel):
+    """LLM answer: Anthropic if keyed, else the Gemini -> Groq chain. Reads back the
+    structured result agent.run wrote (serialised: it shares agent/last_answer.json)."""
     with _agent_lock:
         if os.environ.get("ANTHROPIC_API_KEY"):
-            source = "llm"
             answer = agent_run.run_with_llm(question, crown_jewel)
-        elif agent_run.provider_chain():
-            try:
-                answer, _provider = agent_run.run_with_provider_chain(question, crown_jewel)
-                source = "llm"
-            except Exception:  # every provider failed (e.g. free-tier rate limits)
-                source = "deterministic"
-                answer = agent_run.run_no_llm(crown_jewel)
         else:
-            source = "deterministic"
-            answer = agent_run.run_no_llm(crown_jewel)
+            answer, _provider = agent_run.run_with_provider_chain(question, crown_jewel)
         with open(agent_run.LAST_ANSWER_PATH, "r", encoding="utf-8") as f:
             structured = json.load(f)
     structured["answer"] = answer
-    return {**structured, "sample_response": False, "source": source}
+    return {**structured, "sample_response": False, "source": "llm"}
+
+
+def _run_agent(question, crown_jewel):
+    """LLM within a time budget; if it fails, is rate-limited or is too slow, answer
+    deterministically from the graph (the abandoned LLM attempt is left to finish
+    on its own thread and never blocks this request)."""
+    if os.environ.get("ANTHROPIC_API_KEY") or agent_run.provider_chain():
+        future = _executor.submit(_llm, question, crown_jewel)
+        try:
+            return future.result(timeout=LLM_BUDGET_SECONDS)
+        except (Exception, SystemExit):
+            pass
+    return _deterministic(crown_jewel)
 
 
 @app.get("/api/agent")
