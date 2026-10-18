@@ -3,6 +3,39 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — Issues #1–#8, #11 (Sonnet session): Epic A foundation + B1
+DONE: all of Epic A closed:
+  - #1 (A1): repo scaffold — §12 dirs created, requirements.txt pinned (pip install verified
+    clean in a fresh venv), placeholder modules for lib/schema,ingest,queries,chokepoints,tools,
+    agent/run, mcp/server, data/gen_findings, tests/__init__ — all import cleanly.
+  - #2 (A2): docker-compose.yml + Makefile (real tabs, `make -n` verified) + .env.local.example
+    (had to add a `!.env.local.example` negation to .gitignore so it isn't swallowed by `.env.*`).
+  - #3 (A3): README.md skeleton, all 10 Rule-10 sections in order, disclosure text verbatim.
+  - #4 (A4): lib/schema.py frozen constants + validate_node() (tested: good/unknown-label/
+    missing-id/bad-bool/bad-enum all behave per spec); prepended the frozen node/edge/invariant
+    docs to docs/graph-model.md ABOVE the existing "Verified live Cypher" section from #10 (kept
+    that section intact — it was already filled for real, not a placeholder).
+  - #5 (A5): docs/findings.schema.json (draft 2020-12) + data/findings.example.json — both
+    validated live via `jsonschema.validate`.
+  - #6 (A6): lib/tools.py frozen interface stubs (5 functions + 4 TypedDicts), all raise
+    NotImplementedError, imports verified.
+  - #7 (A7): docs/demo-scenario.md — full node/edge tables + the 6 enumerated paths + choke-point
+    headline, transcribed verbatim from the issue (matches #10's live-verified set exactly).
+  - #8 (A8): docs/REUSE.md created (docs/HANDOFF.md already existed from #10's session, already
+    satisfied the template — left as-is).
+  - #11 (B1): added `init_schema()` (5 id indexes, verified idempotent — ran twice, no error,
+    `CALL db.indexes()` lists all 5) and `reset()` to the existing lib/graph.py (connect()/run()
+    untouched); tests/test_graph.py passes live against FalkorDB Cloud.
+  All verified live against the team's FalkorDB Cloud instance where applicable. No Claude
+  attribution added anywhere; each issue closed via commit "Closes #N" and auto-closed on push.
+NEXT: Epic B continues — #12 (B6 synthetic findings.json generator, should transcribe
+  docs/demo-scenario.md exactly), #13 (B2 ingest.py), #14 (B3 seed_taxonomy.py — needs the
+  swiftPentest taxonomy files copied per docs/REUSE.md, currently marked "pending"), #15 (B4
+  query 7a in lib/queries.py), #16 (B5 query 7b).
+BROKEN/blocked: none from this session. Note for whoever picks up #14: the REUSE.md rows for
+  the taxonomy files are still "pending" — the actual copy from ../swiftpentest-fork hasn't
+  happened yet.
+
 ## 2026-10-18 — Issue #10: live query spike (Opus)
 DONE: ran 7a/7b/7c against FalkorDB Cloud (graph module v4.22.0, enterprise; falkordb-py 1.8.0;
   ssl=false) on scratch graph `crownpath_spike`, loaded from the frozen demo scenario.
