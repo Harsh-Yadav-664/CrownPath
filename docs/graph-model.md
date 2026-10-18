@@ -1,8 +1,43 @@
 # CrownPath graph model
 
-> The full frozen schema (node labels, properties, enums, the 8 edges, invariants) is
-> authored by issue #4 (A4). This file currently holds the **live-verified Cypher** from the
-> issue #10 spike so later Epic-B issues build only on syntax proven against the real database.
+Frozen by issue #4 (A4), mirroring `lib/schema.py`. Do not add labels/edges not listed here.
+
+## Node labels
+
+- **Asset** `{id, name, type, environment, is_crown_jewel, value}` — `type` ∈
+  `host|service|webapp|database`; `is_crown_jewel` bool; `value` int (business value).
+- **Endpoint** `{id, url, method, auth_required}`
+- **Finding** `{id, title, vuln_type, cwe, cvss, confidence, status, discovered_at, evidence}`
+  — `vuln_type` ∈ `xss|sqli|idor|ssrf|ssti|lfi|open_redirect|csrf|cors|path_traversal|rce|
+  info_disclosure|auth_bypass|mass_assignment|deserialization|file_upload`; `status` ∈
+  `confirmed|inconclusive|refuted`.
+- **Technique** `{id, name, cwe, capability}` — `capability` ∈
+  `session_theft|rce|data_read|data_write|priv_esc|auth_bypass|ssrf_pivot`.
+- **Identity** `{id, role, privilege_level}` — `role` ∈ `anonymous(0)|user(1)|admin(3)`.
+
+## Relationships (the 8 edges — the edges are the product)
+
+| Edge | Meaning |
+|---|---|
+| `(Asset)-[:EXPOSES]->(Endpoint)` | the asset serves this endpoint |
+| `(Endpoint)-[:HAS_FINDING]->(Finding)` | a finding was discovered on this endpoint |
+| `(Finding)-[:INSTANCE_OF]->(Technique)` | the finding is an instance of this attack technique |
+| `(Finding)-[:GRANTS]->(Identity)` | a confirmed finding yields this privilege level |
+| `(Finding)-[:LEADS_TO]->(Asset)` | a confirmed finding opens access to another asset |
+| `(Technique)-[:CHAINS_TO]->(Technique)` | precondition -> postcondition chaining (taxonomy) |
+| `(Asset)-[:CONNECTS_TO]->(Asset)` | network reachability between assets |
+| `(Identity)-[:CAN_ACCESS]->(Asset)` | an identity at this privilege level can reach this asset |
+
+## Invariants
+
+- Only `Finding.status = 'confirmed'` findings carry attack edges (`GRANTS` / `LEADS_TO`).
+  `inconclusive` / `refuted` findings exist in the graph for audit but never participate in
+  attack-path traversal.
+- The graph must contain at least one `Asset {is_crown_jewel: true}` and at least one
+  anonymous internet-facing entry point, `Endpoint {auth_required: false}`.
+- `INSTANCE_OF` and `CHAINS_TO` are excluded from the attack-path traversal edge set
+  (`ATTACK_EDGES` in `lib/schema.py`) — a `Technique` node has no outgoing edge that reaches
+  an `Asset`, so they serve explanation only, not reachability.
 
 ## Verified live Cypher
 
