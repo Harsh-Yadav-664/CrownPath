@@ -1,11 +1,36 @@
 """lib/chokepoints.py — query 7c, the choke-point finding (BUILD_SPEC.md §7c/§2,
 issue #21 / D2). This is the headline: "fix X -> sever N of M paths."
 
-Primary method (authoritative, deterministic): enumerate 7a paths, count each
-Finding's occurrences. Secondary method (cross-check, logged only, never
-overrides the ranking): algo.betweenness over the attack subgraph.
+Primary method (authoritative, deterministic): enumerate 7a paths and count each
+Finding's occurrences -- all in Cypher. Secondary method (cross-check, logged only,
+never overrides the ranking): algo.betweenness over the attack subgraph.
 """
-from lib import graph, queries
+from lib import graph
+
+_EDGES = "EXPOSES|HAS_FINDING|LEADS_TO|GRANTS|CAN_ACCESS|CONNECTS_TO"
+
+# 7a path enumeration + the 7b score per path, as the head of every 7c query.
+_PATHS_ALL_JEWELS = f"""
+MATCH path = (e:Endpoint {{auth_required:false}})
+      -[:{_EDGES}*1..8]->
+      (j:Asset {{is_crown_jewel:true}})
+WITH path, reduce(c = 1.0, n IN nodes(path) |
+       CASE WHEN 'Finding' IN labels(n) THEN c * n.confidence ELSE c END)
+     * j.value / length(path) AS score
+"""
+_PATHS_ONE_JEWEL = _PATHS_ALL_JEWELS.replace(
+    "{is_crown_jewel:true}", "{is_crown_jewel:true, id:$jid}"
+)
+
+# M (total paths) and the highest-value path score.
+_TOTALS = "RETURN count(path), max(score)"
+
+# N per finding: paths it sits on, ranked; summed score breaks ties.
+_PER_FINDING = """
+UNWIND [n IN nodes(path) WHERE 'Finding' IN labels(n)] AS f
+RETURN f.id, count(path) AS severed, sum(score) AS summed, max(score) AS best_on_path
+ORDER BY severed DESC, summed DESC
+"""
 
 _BETWEENNESS_QUERY = """
 CALL algo.betweenness({
@@ -39,48 +64,39 @@ def betweenness_cross_check(g):
     return {row[0]: row[1] for row in result.result_set}
 
 
+def _cypher_params(crown_jewel_id):
+    """(match clause, params): one crown jewel when an id is given, else all of them."""
+    if crown_jewel_id is None:
+        return _PATHS_ALL_JEWELS, {}
+    return _PATHS_ONE_JEWEL, {"jid": crown_jewel_id}
+
+
 def choke_points(g, crown_jewel_id=None):
     """Query 7c: findings ranked by how many crown-jewel paths they sit on.
 
-    Primary, authoritative method: count each Finding's occurrence across all 7a
-    paths (removing that finding removes exactly those paths). Tie-break: summed
-    path score DESC. Returns list[ChokePoint] (lib/tools.py #6 shape)."""
-    paths = queries.find_attack_paths(g, crown_jewel_id=crown_jewel_id, limit=None)
-    total_paths = len(paths)
+    Primary, authoritative method, computed entirely in Cypher: enumerate the 7a
+    paths, UNWIND each path's Finding nodes and count paths per Finding (removing that
+    finding removes exactly those paths). Each path also carries its 7b score
+    (prod(finding.confidence) * jewel.value / length, via reduce()), used for the
+    tie-break (summed score DESC) and for severs_highest_value. Python only formats
+    the rows into the ChokePoint shape (lib/tools.py #6)."""
+    match, params = _cypher_params(crown_jewel_id)
 
+    total_row = graph.run(g, match + _TOTALS, params).result_set[0]
+    total_paths, best_score = total_row[0], total_row[1]
     if total_paths == 0:
         return []
 
-    # score every path so the tie-break and severs_highest_value check have data
-    for p in paths:
-        p["score"] = queries.score_path(p)
-
-    best_score = max(p["score"] for p in paths)
-    best_scoring_findings = {
-        fid for p in paths if p["score"] == best_score for fid in p["finding_ids"]
-    }
-
-    severed_count = {}
-    summed_score = {}
-    for p in paths:
-        for fid in set(p["finding_ids"]):
-            severed_count[fid] = severed_count.get(fid, 0) + 1
-            summed_score[fid] = summed_score.get(fid, 0.0) + p["score"]
-
-    titles = _finding_titles(g, severed_count.keys())
-
-    ranked = sorted(
-        severed_count.keys(),
-        key=lambda fid: (-severed_count[fid], -summed_score[fid]),
-    )
+    rows = graph.run(g, match + _PER_FINDING, params).result_set
+    titles = _finding_titles(g, [row[0] for row in rows])
 
     choke_points_out = []
-    for fid in ranked:
-        severs_highest_value = fid in best_scoring_findings
+    for fid, severed, _summed, best_on_path in rows:
+        severs_highest_value = abs(best_on_path - best_score) < 1e-9
         choke_points_out.append({
             "finding_id": fid,
             "title": titles.get(fid, fid),
-            "paths_severed": severed_count[fid],
+            "paths_severed": severed,
             "paths_total": total_paths,
             "severs_highest_value": severs_highest_value,
             "highest_value_path_score": best_score if severs_highest_value else 0.0,
