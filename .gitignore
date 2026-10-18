@@ -1,0 +1,19 @@
+# secrets — NEVER commit real credentials
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# local db / editor
+dump.rdb
+.DS_Store
+
+# claude code personal overrides
+**/.claude/settings.local.json
