@@ -249,8 +249,9 @@ By default `make demo` is deterministic. To let a model choose the graph tools i
 of these in `.env` and run `python -m agent.run`:
 
 - `ANTHROPIC_API_KEY` (model via `CROWNPATH_MODEL`), or
-- any OpenAI-compatible provider: `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` (free Gemini and
-  Groq examples are in `.env.example`).
+- free `GEMINI_API_KEY` (gemini-2.5-flash) and/or `GROQ_API_KEY` (openai/gpt-oss-120b): tried in
+  that order, each falling back to the next on a rate limit or outage, then to the deterministic
+  answer; or any OpenAI-compatible provider via `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`.
 
 The model sees the same tool schemas the MCP server exposes (`python -m crownpath_mcp.server`).
 

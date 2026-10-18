@@ -161,9 +161,13 @@ def _run_agent(question, crown_jewel):
         if os.environ.get("ANTHROPIC_API_KEY"):
             source = "llm"
             answer = agent_run.run_with_llm(question, crown_jewel)
-        elif os.environ.get("LLM_API_KEY") and os.environ.get("LLM_BASE_URL"):
-            source = "llm"
-            answer = agent_run.run_with_provider_llm(question, crown_jewel)
+        elif agent_run.provider_chain():
+            try:
+                answer, _provider = agent_run.run_with_provider_chain(question, crown_jewel)
+                source = "llm"
+            except Exception:  # every provider failed (e.g. free-tier rate limits)
+                source = "deterministic"
+                answer = agent_run.run_no_llm(crown_jewel)
         else:
             source = "deterministic"
             answer = agent_run.run_no_llm(crown_jewel)

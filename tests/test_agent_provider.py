@@ -104,3 +104,24 @@ def test_run_with_provider_llm_raises_without_api_key(monkeypatch):
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     with pytest.raises(SystemExit):
         agent_run.run_with_provider_llm("question", "asset:db", "data/findings.json", client=None)
+
+
+def test_provider_chain_order_and_fallback(monkeypatch):
+    for var in ("LLM_API_KEY", "LLM_BASE_URL"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    monkeypatch.setenv("GROQ_API_KEY", "q-key")
+    assert [c["name"] for c in agent_run.provider_chain()] == ["gemini", "groq"]
+
+    calls = []
+
+    def fake_run(question, crown_jewel_id, findings_path, client=None, model=None):
+        calls.append(model)
+        if len(calls) == 1:
+            raise RuntimeError("429 rate limited")
+        return "answer"
+
+    monkeypatch.setattr(agent_run, "run_with_provider_llm", fake_run)
+    answer, provider = agent_run.run_with_provider_chain("q")
+    assert (answer, provider) == ("answer", "groq")
+    assert calls == ["gemini-2.5-flash", "openai/gpt-oss-120b"]

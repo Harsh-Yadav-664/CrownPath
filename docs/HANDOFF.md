@@ -3,6 +3,16 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — #18 live LLM path verified (Gemini + Groq), provider chain
+Keys supplied as `GEMINI_API_KEY` / `GROQ_API_KEY` in `.env` (never committed; tracked files
+and history grepped for the values: 0 hits). `agent/run.py` now has `provider_chain()` +
+`run_with_provider_chain()`: Gemini (gemini-2.5-flash) -> Groq (openai/gpt-oss-120b) -> deterministic
+(-> recorded sample on the public endpoint). Observed live: Gemini free tier 429s after a few
+tool loops; Groq 4/5 live, 1/5 rate limit, both fall back cleanly. Findings fixed: (1) crash printing
+`→` on a Windows cp1252 console; (2) the model once composed its own Path line without calling
+`rank_by_reachability` -> prompt now mandates both tools and verbatim paths, and the structured
+`last_answer.json` is back-filled from the graph if a tool was skipped. Details: docs/sample-run.md.
+
 ## 2026-10-18 — #30 fresh-clone verification (local-Docker path) — PASS
 Environment: Windows 11 Home, Docker Desktop 29.8.2, Python 3.13.5, clean clone of the fork
 into an empty folder, fresh venv, `.env` copied from `.env.local.example` only (no Cloud creds).

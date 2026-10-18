@@ -1,8 +1,9 @@
 """agent/run.py — question -> graph tools -> path-cited remediations (BUILD_SPEC.md
 §8/§2, issue #18 / C2). Three ways to answer, in order of preference:
   1. Anthropic tool-use loop (ANTHROPIC_API_KEY set) -- run_with_llm().
-  2. Any OpenAI-compatible provider via function calling (LLM_API_KEY/LLM_BASE_URL
-     set) -- run_with_provider_llm(). Bridges the MCP tool schemas from
+  2. Any OpenAI-compatible provider via function calling (GEMINI_API_KEY, GROQ_API_KEY
+     or LLM_API_KEY/LLM_BASE_URL set; tried in that order with fallback) --
+     run_with_provider_chain() / run_with_provider_llm(). Bridges the MCP tool schemas from
      crownpath_mcp/server.py (issue #20) into OpenAI function-calling format, so
      the agent still selects tools through the same schemas MCP exposes.
   3. --no-llm / no key at all: calls the tools directly and formats
@@ -22,6 +23,8 @@ from lib import tools
 DEFAULT_QUESTION = "We have these findings. What should we fix first, and why?"
 DEFAULT_MODEL = "claude-sonnet-5-5"
 DEFAULT_LLM_MODEL = "gemini-2.5-flash"
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 MAX_TOOL_ITERATIONS = 8
 SYSTEM_PROMPT_PATH = os.path.join("agent", "prompts", "system.md")
 LAST_ANSWER_PATH = os.path.join("agent", "last_answer.json")
@@ -81,6 +84,17 @@ def run_no_llm(crown_jewel_id="asset:db", findings_path="data/findings.json"):
     return answer
 
 
+def _backfill(crown_jewel_id, remediations, chokepoints):
+    """If the model skipped a graph tool, fetch the missing structured result from the
+    graph so agent/last_answer.json (read by the UI) always holds real data, never the
+    model's own composition."""
+    if not remediations:
+        remediations = tools.rank_by_reachability(crown_jewel_id)
+    if not chokepoints:
+        chokepoints = tools.choke_points(crown_jewel_id)
+    return remediations, chokepoints
+
+
 def _write_last_answer(remediations, chokepoints, answer_text):
     with open(LAST_ANSWER_PATH, "w", encoding="utf-8") as f:
         json.dump(
@@ -131,6 +145,9 @@ def run_with_llm(question, crown_jewel_id="asset:db", findings_path="data/findin
             final_text = "".join(
                 block.text for block in response.content if block.type == "text"
             )
+            last_remediations, last_chokepoints = _backfill(
+                crown_jewel_id, last_remediations, last_chokepoints
+            )
             _write_last_answer(last_remediations, last_chokepoints, final_text)
             return final_text
 
@@ -162,7 +179,57 @@ def run_with_llm(question, crown_jewel_id="asset:db", findings_path="data/findin
     raise RuntimeError(f"agent: exceeded {MAX_TOOL_ITERATIONS} tool-use iterations without a final answer")
 
 
-def run_with_provider_llm(question, crown_jewel_id="asset:db", findings_path="data/findings.json", client=None):
+def provider_chain():
+    """OpenAI-compatible providers configured in the environment, in the order they
+    are tried: an explicit LLM_BASE_URL/LLM_API_KEY/LLM_MODEL trio first, then Gemini
+    (GEMINI_API_KEY), then Groq (GROQ_API_KEY). A provider that fails (rate limit,
+    outage, bad key) hands over to the next one."""
+    chain = []
+    if os.environ.get("LLM_API_KEY") and os.environ.get("LLM_BASE_URL"):
+        chain.append({
+            "name": "llm",
+            "base_url": os.environ["LLM_BASE_URL"],
+            "api_key": os.environ["LLM_API_KEY"],
+            "model": os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL),
+        })
+    if os.environ.get("GEMINI_API_KEY"):
+        chain.append({
+            "name": "gemini",
+            "base_url": GEMINI_BASE_URL,
+            "api_key": os.environ["GEMINI_API_KEY"],
+            "model": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+        })
+    if os.environ.get("GROQ_API_KEY"):
+        chain.append({
+            "name": "groq",
+            "base_url": GROQ_BASE_URL,
+            "api_key": os.environ["GROQ_API_KEY"],
+            "model": os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b"),
+        })
+    return chain
+
+
+def run_with_provider_chain(question, crown_jewel_id="asset:db", findings_path="data/findings.json"):
+    """Try each configured provider in order; returns (answer, provider_name).
+    Raises the last error if every provider fails (callers then fall back to the
+    deterministic path or the recorded sample)."""
+    import openai
+
+    last_error = None
+    for cfg in provider_chain():
+        try:
+            client = openai.OpenAI(base_url=cfg["base_url"], api_key=cfg["api_key"], timeout=60)
+            answer = run_with_provider_llm(
+                question, crown_jewel_id, findings_path, client=client, model=cfg["model"]
+            )
+            return answer, cfg["name"]
+        except Exception as exc:  # next provider; never log the key
+            last_error = exc
+            print(f"agent: provider {cfg['name']} failed ({type(exc).__name__}); trying next", file=sys.stderr)
+    raise last_error or RuntimeError("no LLM provider configured")
+
+
+def run_with_provider_llm(question, crown_jewel_id="asset:db", findings_path="data/findings.json", client=None, model=None):
     """Provider-agnostic LLM tool-use loop over any OpenAI-compatible chat API
     (Gemini, Groq, or anything else that speaks the OpenAI chat-completions
     shape). Configured via LLM_BASE_URL / LLM_MODEL / LLM_API_KEY (see
@@ -191,7 +258,7 @@ def run_with_provider_llm(question, crown_jewel_id="asset:db", findings_path="da
             sys.exit(1)
         client = openai.OpenAI(base_url=base_url, api_key=api_key)
 
-    model = os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL)
+    model = model or os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL)
 
     with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
         system_prompt = f.read()
@@ -218,6 +285,9 @@ def run_with_provider_llm(question, crown_jewel_id="asset:db", findings_path="da
 
         if not tool_calls:
             final_text = message.content or ""
+            last_remediations, last_chokepoints = _backfill(
+                crown_jewel_id, last_remediations, last_chokepoints
+            )
             _write_last_answer(last_remediations, last_chokepoints, final_text)
             return final_text
 
@@ -264,12 +334,21 @@ def main():
     parser.add_argument("--no-llm", action="store_true")
     args = parser.parse_args()
 
+    # LLM answers contain Unicode arrows; a cp1252 Windows console would crash on them.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     if args.no_llm:
         answer = run_no_llm(args.crown_jewel, args.findings)
     elif os.environ.get("ANTHROPIC_API_KEY"):
         answer = run_with_llm(args.question, args.crown_jewel, args.findings)
-    elif os.environ.get("LLM_API_KEY") and os.environ.get("LLM_BASE_URL"):
-        answer = run_with_provider_llm(args.question, args.crown_jewel, args.findings)
+    elif provider_chain():
+        try:
+            answer, provider = run_with_provider_chain(args.question, args.crown_jewel, args.findings)
+            print(f"[answered by {provider}]", file=sys.stderr)
+        except Exception as exc:
+            print(f"agent: all LLM providers failed ({type(exc).__name__}); using the deterministic path", file=sys.stderr)
+            answer = run_no_llm(args.crown_jewel, args.findings)
     else:
         answer = run_no_llm(args.crown_jewel, args.findings)
 

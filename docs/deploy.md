@@ -36,9 +36,11 @@ cp agent/last_answer.json data/sample_answer.json
 3. Fill in the environment variables (same values as your local `.env`):
    `FALKORDB_HOST`, `FALKORDB_PORT`, `FALKORDB_USERNAME`, `FALKORDB_PASSWORD`,
    `FALKORDB_SSL` (`false` for our Cloud instance), `CROWNPATH_GRAPH` (`crownpath`),
-   and the LLM trio `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`
-   (or `ANTHROPIC_API_KEY` / `CROWNPATH_MODEL`). The LLM variables are optional; without
-   them `/api/agent` uses the deterministic path.
+   and the LLM keys `GEMINI_API_KEY` and `GROQ_API_KEY` (tried in that order; a provider that
+   is rate-limited or down hands over to the next, then to the deterministic path, then to the
+   recorded sample). `ANTHROPIC_API_KEY` / `CROWNPATH_MODEL` or a generic
+   `LLM_BASE_URL`/`LLM_MODEL`/`LLM_API_KEY` trio also work. All LLM variables are optional;
+   without them `/api/agent` answers from the graph deterministically.
 4. **Create** and wait for the build. Copy the public `https://<name>.onrender.com` URL
    into README -> Setup -> Option A.
 5. Seed the Cloud graph once, from any machine whose `.env` points at the same instance:
