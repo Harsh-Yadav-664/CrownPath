@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CrownPath</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #171a24;
+    --text: #e6e8ef;
+    --muted: #8b90a3;
+    --accent: #ff5d73;
+    --jewel: #ffd166;
+    --edge: #3a3f52;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  header {
+    padding: 16px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--edge);
+  }
+  h1 { margin: 0 0 4px; font-size: 18px; }
+  .tagline { color: var(--muted); font-size: 13px; }
+  .controls {
+    display: flex;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--edge);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  button {
+    background: var(--accent);
+    color: #1a0d10;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--edge);
+  }
+  #headline {
+    font-size: 14px;
+    color: var(--jewel);
+    font-weight: 600;
+  }
+  #cy {
+    width: 100%;
+    height: calc(100vh - 118px);
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>CrownPath</h1>
+  <div class="tagline">An attack-path triage agent that reasons over how vulnerabilities chain, on FalkorDB.</div>
+</header>
+<div class="controls">
+  <button id="trace-btn">Trace attack paths</button>
+  <button id="choke-btn" class="secondary">Show choke point</button>
+  <button id="reset-btn" class="secondary">Reset view</button>
+  <span id="headline"></span>
+</div>
+<div id="cy"></div>
+<script>
+const API_BASE = ""; // relative: works on any host (localhost, Cloud-backed deploy, etc.)
+const CROWN_JEWEL = "asset:db";
+
+const COLOR_BY_TYPE = {
+  Asset: "#5aa9e6",
+  Endpoint: "#8ad6c2",
+  Finding: "#ff8fa3",
+  Identity: "#c8a2ff",
+  Technique: "#555b70",
+};
+
+let cy;
+
+async function loadGraph() {
+  const res = await fetch(`${API_BASE}/api/graph`);
+  const { nodes, edges } = await res.json();
+
+  cy = cytoscape({
+    container: document.getElementById("cy"),
+    elements: { nodes, edges },
+    style: [
+      {
+        selector: "node",
+        style: {
+          "background-color": (n) => COLOR_BY_TYPE[n.data("type")] || "#888",
+          label: "data(label)",
+          color: "#e6e8ef",
+          "font-size": 9,
+          "text-valign": "bottom",
+          "text-margin-y": 4,
+          width: 26,
+          height: 26,
+        },
+      },
+      {
+        selector: `node[id = "${CROWN_JEWEL}"]`,
+        style: { "background-color": "#ffd166", width: 40, height: 40, "border-width": 3, "border-color": "#fff" },
+      },
+      {
+        selector: "edge",
+        style: {
+          width: 1.5,
+          "line-color": "#3a3f52",
+          "target-arrow-color": "#3a3f52",
+          "target-arrow-shape": "triangle",
+          "curve-style": "bezier",
+          label: "data(label)",
+          "font-size": 7,
+          color: "#8b90a3",
+        },
+      },
+      {
+        selector: ".highlighted",
+        style: {
+          "line-color": "#ff5d73",
+          "target-arrow-color": "#ff5d73",
+          width: 3,
+        },
+      },
+      {
+        selector: ".highlighted-node",
+        style: { "border-width": 3, "border-color": "#ff5d73" },
+      },
+      {
+        selector: ".dimmed",
+        style: { opacity: 0.15 },
+      },
+      {
+        selector: ".choke",
+        style: { "background-color": "#ff5d73", width: 40, height: 40, "border-width": 3, "border-color": "#fff" },
+      },
+    ],
+    layout: { name: "cose", animate: false },
+  });
+}
+
+function clearHighlight() {
+  cy.elements().removeClass("highlighted highlighted-node dimmed choke");
+  document.getElementById("headline").textContent = "";
+}
+
+function highlightPathEdges(path) {
+  const nodeIds = path.steps.filter((s) => s.kind === "node").map((s) => s.id);
+  for (let i = 0; i < nodeIds.length - 1; i++) {
+    const edge = cy.edges(`[source = "${nodeIds[i]}"][target = "${nodeIds[i + 1]}"]`);
+    edge.addClass("highlighted");
+  }
+  nodeIds.forEach((id) => cy.getElementById(id).addClass("highlighted-node"));
+}
+
+async function traceAttackPaths() {
+  clearHighlight();
+  const res = await fetch(`${API_BASE}/api/paths?crown_jewel=${CROWN_JEWEL}`);
+  const { paths } = await res.json();
+  paths.forEach(highlightPathEdges);
+  document.getElementById("headline").textContent = `${paths.length} attack path(s) to the crown jewel`;
+}
+
+async function showChokePoint() {
+  clearHighlight();
+  const res = await fetch(`${API_BASE}/api/chokepoints?crown_jewel=${CROWN_JEWEL}`);
+  const { choke_points, headline } = await res.json();
+  if (!choke_points || choke_points.length === 0) return;
+
+  const top = choke_points[0];
+  cy.elements().addClass("dimmed");
+  const chokeNode = cy.getElementById(top.finding_id);
+  chokeNode.removeClass("dimmed").addClass("choke");
+
+  // highlight the finding's neighbourhood so the severed region is visible
+  chokeNode.closedNeighborhood().removeClass("dimmed");
+
+  document.getElementById("headline").textContent = headline || "";
+}
+
+document.getElementById("trace-btn").addEventListener("click", traceAttackPaths);
+document.getElementById("choke-btn").addEventListener("click", showChokePoint);
+document.getElementById("reset-btn").addEventListener("click", clearHighlight);
+
+loadGraph();
+</script>
+</body>
+</html>
