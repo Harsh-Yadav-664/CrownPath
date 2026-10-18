@@ -1,4 +1,4 @@
-.PHONY: up down logs cli ps seed demo ui ping
+.PHONY: up down logs cli ps seed memory demo ui ping
 up:
 	docker compose up -d
 down:
@@ -13,6 +13,8 @@ ping:
 	python scripts/ping.py
 seed:
 	python -m lib.seed_taxonomy --all
+memory:
+	python -m lib.memory --demo
 demo:
 	python -m agent.run --crown-jewel asset:db
 ui:
