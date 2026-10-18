@@ -57,7 +57,7 @@ def test_openai_tool_defs_bridge_mcp_schemas():
     names = {d["function"]["name"] for d in defs}
     assert names == {
         "ingest_findings", "find_attack_paths", "shortest_path",
-        "rank_by_reachability", "choke_points",
+        "rank_by_reachability", "choke_points", "whats_changed",
     }
     for d in defs:
         assert d["type"] == "function"

@@ -7,6 +7,9 @@ we own. Re-running produces byte-identical output.
 
 Usage:
     python data/gen_findings.py [--out data/findings.json]
+    python data/gen_findings.py --scenario regress   # issue #23: two dated scans
+        writes data/findings.scan1.json (the demo minus f:idor) and
+        data/findings.scan2.json (identical to the frozen demo) for lib/memory.py.
 """
 import argparse
 import json
@@ -116,17 +119,40 @@ def build_document():
     }
 
 
+# Finding the earlier scan had not yet discovered (issue #23): scan 2 adds it, which
+# opens four new paths to the crown jewel through asset:api.
+REGRESSION_FINDING_ID = "f:idor"
+
+
+def _write(doc, out):
+    with open(out, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(doc, f, indent=2, sort_keys=True)
+        f.write("\n")
+    print(f"wrote {out}")
+
+
+def build_regress_documents():
+    """(scan1, scan2): scan2 is the frozen demo; scan1 is the same estate before
+    REGRESSION_FINDING_ID was found."""
+    scan2 = build_document()
+    scan1 = build_document()
+    scan1["findings"] = [f for f in scan1["findings"] if f["id"] != REGRESSION_FINDING_ID]
+    return scan1, scan2
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default=os.path.join("data", "findings.json"))
+    parser.add_argument("--scenario", choices=["demo", "regress"], default="demo")
     args = parser.parse_args()
 
-    doc = build_document()
-    with open(args.out, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(doc, f, indent=2, sort_keys=True)
-        f.write("\n")
+    if args.scenario == "regress":
+        scan1, scan2 = build_regress_documents()
+        _write(scan1, os.path.join("data", "findings.scan1.json"))
+        _write(scan2, os.path.join("data", "findings.scan2.json"))
+        return
 
-    print(f"wrote {args.out}")
+    _write(build_document(), args.out)
 
 
 if __name__ == "__main__":

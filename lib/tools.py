@@ -148,3 +148,14 @@ def choke_points(crown_jewel_id: str | None = None) -> list[ChokePoint]:
 
     g = _get_graph()
     return fn(g, crown_jewel_id=crown_jewel_id)
+
+
+def whats_changed(since: str = "scan-1", until: str = "scan-2",
+                  crown_jewel_id: str = "asset:db") -> dict:
+    """6th tool (P2, issue #23 / Track 02): graph memory across scans. Diffs two
+    recorded scans in Cypher: findings added/removed, assets that regressed (a newly
+    confirmed finding opened new attack paths to the crown jewel), and the crown-jewel
+    path count in each scan. Requires scans loaded via `python -m lib.memory --demo`."""
+    from lib import memory
+    g = _get_graph()
+    return memory.whats_changed(g, since, until, crown_jewel_id)

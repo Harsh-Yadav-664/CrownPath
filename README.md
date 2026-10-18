@@ -21,7 +21,17 @@ computed it.
 
 Track 01 — Agents That Act on Connected Data.
 
-Track 02 (Agent Memory and Coordination) is named only if the Graphiti memory layer (issue E1) ships.
+Track 02 — Agent Memory and Coordination.
+
+**Memory model (Track 02).** The graph remembers across scans. Every `Finding` carries
+`first_seen`, `last_seen` and a `scans` list of scan ids; the agent's sixth tool,
+`whats_changed(since, until)` (`lib/memory.py`), diffs two scans entirely in Cypher and
+reports findings added/removed and **regressed assets** — e.g. "scan-2 added a confirmed IDOR
+on Orders API, which opens 4 new paths to the customer database (2 → 6)". Per-scan path
+membership reuses the 7a traversal with a filter on `scans`, so the graph decides which paths
+existed when. We chose native graph memory over Graphiti because our findings are already
+structured (no LLM extraction needed) and the numbers must be deterministic; see
+`docs/HANDOFF.md`. Load the demo history with `python -m lib.memory --demo`.
 
 ## Architecture
 

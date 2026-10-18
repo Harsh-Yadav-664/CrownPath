@@ -12,8 +12,9 @@ package` (confirmed live). Renamed this package to `crownpath_mcp/` so `import
 mcp` inside it reaches the real SDK. Entry point is now
 `python -m crownpath_mcp.server` (was `python -m mcp.server`).
 
-Exposes exactly the five lib.tools functions (#6/#17): ingest_findings,
-find_attack_paths, shortest_path, rank_by_reachability, choke_points. Each tool's
+Exposes the five lib.tools functions (#6/#17): ingest_findings,
+find_attack_paths, shortest_path, rank_by_reachability, choke_points -- plus a sixth,
+whats_changed (P2 memory layer, issue #23 / Track 02). Each tool's
 input schema mirrors its Python signature; each handler calls the matching
 lib.tools function and returns the result as JSON text content.
 """
@@ -79,6 +80,24 @@ TOOL_DEFS = [
             "properties": {"crown_jewel_id": {"type": ["string", "null"]}},
         },
     ),
+    types.Tool(
+        name="whats_changed",
+        description=(
+            "Memory across scans: diff two recorded scans (default scan-1 -> scan-2). "
+            "Use ONLY when asked what changed or regressed between scans; not for "
+            "'what to fix first'. Returns findings added/removed, assets that regressed "
+            "(a newly confirmed finding opened new paths to the crown jewel), and the "
+            "crown-jewel path count in each scan."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "since": {"type": "string", "default": "scan-1"},
+                "until": {"type": "string", "default": "scan-2"},
+                "crown_jewel_id": {"type": "string", "default": "asset:db"},
+            },
+        },
+    ),
 ]
 
 TOOL_FUNCTIONS = {
@@ -87,6 +106,7 @@ TOOL_FUNCTIONS = {
     "shortest_path": tools.shortest_path,
     "rank_by_reachability": tools.rank_by_reachability,
     "choke_points": tools.choke_points,
+    "whats_changed": tools.whats_changed,
 }
 
 server = Server(SERVER_NAME)

@@ -1,0 +1,198 @@
+{
+  "access": [
+    {
+      "asset_id": "asset:api",
+      "identity_id": "id:user"
+    },
+    {
+      "asset_id": "asset:db",
+      "identity_id": "id:admin"
+    }
+  ],
+  "assets": [
+    {
+      "environment": "prod",
+      "id": "asset:web",
+      "is_crown_jewel": false,
+      "name": "Storefront",
+      "type": "webapp",
+      "value": 20
+    },
+    {
+      "environment": "prod",
+      "id": "asset:api",
+      "is_crown_jewel": false,
+      "name": "Orders API",
+      "type": "service",
+      "value": 40
+    },
+    {
+      "environment": "prod",
+      "id": "asset:admin",
+      "is_crown_jewel": false,
+      "name": "Admin console",
+      "type": "service",
+      "value": 60
+    },
+    {
+      "environment": "prod",
+      "id": "asset:db",
+      "is_crown_jewel": true,
+      "name": "Customer database",
+      "type": "database",
+      "value": 100
+    }
+  ],
+  "connections": [
+    {
+      "from_asset_id": "asset:admin",
+      "to_asset_id": "asset:api"
+    }
+  ],
+  "endpoints": [
+    {
+      "asset_id": "asset:web",
+      "auth_required": false,
+      "id": "ep:search",
+      "method": "GET",
+      "url": "/search"
+    },
+    {
+      "asset_id": "asset:web",
+      "auth_required": false,
+      "id": "ep:go",
+      "method": "GET",
+      "url": "/go"
+    },
+    {
+      "asset_id": "asset:web",
+      "auth_required": false,
+      "id": "ep:login",
+      "method": "POST",
+      "url": "/login"
+    },
+    {
+      "asset_id": "asset:api",
+      "auth_required": false,
+      "id": "ep:metrics",
+      "method": "GET",
+      "url": "/metrics"
+    },
+    {
+      "asset_id": "asset:api",
+      "auth_required": true,
+      "id": "ep:orders",
+      "method": "GET",
+      "url": "/api/orders"
+    },
+    {
+      "asset_id": "asset:admin",
+      "auth_required": true,
+      "id": "ep:adminapi",
+      "method": "GET",
+      "url": "/admin"
+    }
+  ],
+  "findings": [
+    {
+      "confidence": 0.9,
+      "cvss": 6.1,
+      "cwe": "CWE-79",
+      "endpoint_id": "ep:search",
+      "grants_identity_id": "id:user",
+      "id": "f:xss",
+      "status": "confirmed",
+      "technique_id": "xss",
+      "title": "Reflected XSS on /search",
+      "vuln_type": "xss"
+    },
+    {
+      "confidence": 0.6,
+      "cvss": 5.0,
+      "cwe": "CWE-601",
+      "endpoint_id": "ep:go",
+      "grants_identity_id": "id:user",
+      "id": "f:redirect",
+      "status": "confirmed",
+      "technique_id": "open-redirect",
+      "title": "Open redirect on /go",
+      "vuln_type": "open_redirect"
+    },
+    {
+      "confidence": 0.7,
+      "cvss": 7.5,
+      "cwe": "CWE-287",
+      "endpoint_id": "ep:login",
+      "grants_identity_id": "id:user",
+      "id": "f:authbypass",
+      "status": "confirmed",
+      "technique_id": "bfla",
+      "title": "Auth bypass on /login",
+      "vuln_type": "auth_bypass"
+    },
+    {
+      "confidence": 0.5,
+      "cvss": 8.0,
+      "cwe": "CWE-918",
+      "endpoint_id": "ep:metrics",
+      "id": "f:ssrf",
+      "leads_to_asset_id": "asset:admin",
+      "status": "confirmed",
+      "technique_id": "ssrf",
+      "title": "SSRF on /metrics",
+      "vuln_type": "ssrf"
+    },
+    {
+      "confidence": 0.4,
+      "cvss": 9.0,
+      "cwe": "CWE-89",
+      "endpoint_id": "ep:adminapi",
+      "id": "f:sqli",
+      "leads_to_asset_id": "asset:db",
+      "status": "confirmed",
+      "technique_id": "sqli",
+      "title": "SQLi on /admin",
+      "vuln_type": "sqli"
+    },
+    {
+      "confidence": 0.6,
+      "cvss": 6.5,
+      "cwe": "CWE-915",
+      "endpoint_id": "ep:adminapi",
+      "grants_identity_id": "id:admin",
+      "id": "f:massassign",
+      "status": "confirmed",
+      "technique_id": "mass-assignment",
+      "title": "Mass assignment on /admin",
+      "vuln_type": "mass_assignment"
+    },
+    {
+      "confidence": 0.3,
+      "cvss": 4.0,
+      "cwe": "CWE-352",
+      "endpoint_id": "ep:search",
+      "id": "f:csrf",
+      "status": "inconclusive",
+      "technique_id": "csrf",
+      "title": "CSRF on /search",
+      "vuln_type": "csrf"
+    }
+  ],
+  "identities": [
+    {
+      "id": "id:anon",
+      "privilege_level": 0,
+      "role": "anonymous"
+    },
+    {
+      "id": "id:user",
+      "privilege_level": 1,
+      "role": "user"
+    },
+    {
+      "id": "id:admin",
+      "privilege_level": 3,
+      "role": "admin"
+    }
+  ]
+}

@@ -94,6 +94,7 @@
   <button id="choke-btn" class="secondary">Show choke point</button>
   <button id="reset-btn" class="secondary">Reset view</button>
   <button id="agent-btn" class="secondary">Ask the agent</button>
+  <button id="changes-btn" class="secondary">What changed?</button>
   <span id="headline"></span>
 </div>
 <div id="agent-panel" hidden>
@@ -237,6 +238,21 @@ async function askAgent() {
   }
 }
 
+async function showChanges() {
+  clearHighlight();
+  const res = await fetch(`${API_BASE}/api/changes?crown_jewel=${CROWN_JEWEL}`);
+  const data = await res.json();
+  const headline = document.getElementById("headline");
+  if (!data.available) {
+    headline.textContent = "No scan history recorded in this graph.";
+    return;
+  }
+  headline.textContent = data.headline;
+  data.added.forEach((f) => cy.getElementById(f.finding_id).addClass("choke"));
+  data.regressed.forEach((r) => cy.getElementById(r.asset_id).addClass("highlighted-node"));
+}
+
+document.getElementById("changes-btn").addEventListener("click", showChanges);
 document.getElementById("agent-btn").addEventListener("click", askAgent);
 document.getElementById("trace-btn").addEventListener("click", traceAttackPaths);
 document.getElementById("choke-btn").addEventListener("click", showChokePoint);

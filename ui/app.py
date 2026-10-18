@@ -94,6 +94,21 @@ def get_chokepoints(crown_jewel: str = "asset:db"):
     return {"choke_points": choke_points, "headline": headline, "crown_jewel": crown_jewel}
 
 
+@app.get("/api/changes")
+def get_changes(since: str = "scan-1", until: str = "scan-2", crown_jewel: str = "asset:db"):
+    """Track 02 memory: what changed between two recorded scans (lib/memory.py).
+    Always HTTP 200; `available: false` when the graph holds no recorded scans."""
+    from lib import memory
+
+    try:
+        change = tools.whats_changed(since, until, crown_jewel)
+    except Exception as exc:
+        return {"available": False, "reason": type(exc).__name__}
+    if not change["paths"]["until"]:
+        return {"available": False, "reason": "no scans recorded"}
+    return {"available": True, "headline": memory.headline(change), **change}
+
+
 # --- /api/agent: the public agent endpoint (issue #25 / E3) --------------------
 # Never shows a judge an error: if the LLM call fails, times out, the graph is
 # unreachable, or the per-IP rate limit is hit, the recorded sample run

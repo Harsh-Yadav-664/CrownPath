@@ -3,6 +3,37 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 (evening) — teammate session: setup, #25 prep, #23 (Sonnet session, user harshiit-rana)
+Setup verified on a fresh Windows venv: `make ping` equivalent (`python scripts/ping.py`) OK,
+UI serves, 6 paths + "fix IDOR, sever 4 of 6" confirmed.
+**Access note:** `harshiit-rana` has READ-only access to `Harsh-Yadav-664/CrownPath`, so work is
+pushed to the fork `harshiit-rana/CrownPath` (remote `fork`) until write access is granted;
+`origin` is still the upstream for `pull --rebase`.
+
+DONE:
+  - **Fresh-install bug fixed (#30 class):** `pip install -r requirements.txt` on a clean venv
+    resolved pydantic 2.14, which removed `eval_type_backport` that `mcp==1.2.0` imports ->
+    `ImportError` collecting tests/test_agent*.py. Pinned `pydantic==2.11.9`,
+    `pydantic-settings==2.11.0` in requirements.txt.
+  - **Test safety:** every test calls `graph.reset()`; running pytest used to empty the graph the
+    live demo reads. Added tests/conftest.py defaulting `CROWNPATH_GRAPH=crownpath_test`.
+  - **#25 prep (Render deploy itself still needs a human account):** render.yaml,
+    docs/deploy.md, `/api/agent` in ui/app.py (in-process per-IP limit 6/min, 40 s timeout,
+    always HTTP 200; falls back to data/sample_answer.json with `sample_response: true` and a UI
+    banner), tests/test_ui_agent.py. Verified: normal, rate-limited and bad-LLM-key paths.
+  - **#23 (Track 02) -- decision: NATIVE memory, not Graphiti.** Reason: our findings are
+    already structured, so Graphiti's LLM entity extraction has nothing to add, and it would
+    bring an embedder dependency plus nondeterminism into a demo whose numbers (4 of 6) must be
+    exact. Implemented in Cypher: Finding gets `first_seen/last_seen/scans[]`;
+    `lib/memory.py` `whats_changed(since, until)` diffs scans (added/removed/regressed + per-scan
+    path counts). Verified live: scan-1 has 2 crown-jewel paths, scan-2 has 6; `f:idor` added;
+    `asset:api` regressed (+4 paths). 6th tool `whats_changed` added to lib/tools.py and
+    crownpath_mcp/server.py; `/api/changes` + "What changed?" button in the UI. The live graph is
+    loaded with `python -m lib.memory --demo` (scan-2 == the frozen demo, so 4-of-6 is unchanged).
+BLOCKED / needs a human: #18 needs LLM_API_KEY in .env (owner will paste); Render account +
+  env vars (#25); push access to upstream; #24 needs `bin/demo_target.py` from swiftPentest
+  (clone was blocked by the tool's permission classifier).
+
 ## 2026-10-18 — #20 resolved, #18 provider-agnostic path, TEAMMATE_RUNBOOK.md (Sonnet session)
 Picked up directly from the #20 blocker flagged in the previous session's entry below.
 Human gave an explicit 3-part instruction: resolve #20 with the rename option, add

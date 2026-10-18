@@ -32,7 +32,7 @@ async def test_mcp_server_lists_tools_and_calls_choke_points():
         tool_names = {t.name for t in tools_result.tools}
         assert tool_names == {
             "ingest_findings", "find_attack_paths", "shortest_path",
-            "rank_by_reachability", "choke_points",
+            "rank_by_reachability", "choke_points", "whats_changed",
         }
 
         result = await session.call_tool("choke_points", {"crown_jewel_id": "asset:db"})

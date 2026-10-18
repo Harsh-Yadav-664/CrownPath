@@ -105,3 +105,14 @@ paths, then slice/limit in Python. A `LIMIT` larger than the true path count (e.
 6 paths with `LIMIT 10`) is harmless for display, but any cap at or below the real count
 undercounts — never rely on it. `lib/queries.py` (#15) and `lib/chokepoints.py` (#21) must
 collect-then-slice.
+
+## Memory across scans (issue #23, Track 02 — additive, frozen schema untouched)
+
+No new labels or edges. `Finding` nodes gain optional properties written by
+`lib/memory.py::record_scan`: `first_seen`, `last_seen` (scan ids), `first_seen_at`,
+`last_seen_at` (ISO timestamps) and `scans` (list of scan ids the finding appeared in).
+`whats_changed(since, until)` computes, in Cypher: findings with `until IN f.scans AND NOT since
+IN f.scans` (added) and the reverse (removed); crown-jewel paths per scan via query 7a plus
+`WHERE all(n IN nodes(path) WHERE n.scans IS NULL OR $scan IN n.scans)`; and regressed assets
+(assets exposing a newly confirmed finding that lies on a path in `until`). Verified live on the
+demo scans: scan-1 = 2 paths, scan-2 = 6 paths, `f:idor` added, `asset:api` regressed (+4).
