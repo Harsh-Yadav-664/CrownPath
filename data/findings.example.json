@@ -1,0 +1,29 @@
+{
+  "assets": [
+    {"id": "asset:web", "name": "Public webapp", "type": "webapp", "environment": "prod", "is_crown_jewel": false, "value": 10},
+    {"id": "asset:db", "name": "Customer database", "type": "database", "environment": "prod", "is_crown_jewel": true, "value": 100}
+  ],
+  "endpoints": [
+    {"id": "ep:search", "asset_id": "asset:web", "url": "/search", "method": "GET", "auth_required": false}
+  ],
+  "identities": [
+    {"id": "id:user", "role": "user", "privilege_level": 1}
+  ],
+  "findings": [
+    {
+      "id": "f:xss",
+      "title": "Reflected XSS on /search",
+      "vuln_type": "xss",
+      "cwe": "CWE-79",
+      "cvss": 6.1,
+      "confidence": 0.9,
+      "status": "confirmed",
+      "endpoint_id": "ep:search",
+      "technique_id": "tech:xss",
+      "grants_identity_id": "id:user",
+      "leads_to_asset_id": "asset:db"
+    }
+  ],
+  "connections": [],
+  "access": []
+}
