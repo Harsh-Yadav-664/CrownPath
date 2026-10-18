@@ -38,9 +38,9 @@ repo owner can act (nothing is silently left open).
 - **Credentials:** `.env` is untracked and `.gitignore`d; the FalkorDB password and host were searched
   for across all history (`git log --all -p`) — 0 hits.
 - **Commit window:** 44/44 commits on 2026-10-18 IST.
-- **Claude attribution:** commits and PRs added in this session carry none. **Exception found, needs
-  owner:** four early commits by the first (planning) session — `3b4365b`, `dc17d90`, `fc1ba1d`,
-  `b3263a9` — carry `Co-Authored-By: Claude …` trailers, contrary to `CLAUDE.md`. GitHub's contributors
-  API currently lists only humans, but the trailers remain in history. Removing them requires rewriting
-  those four commits and force-pushing, which `CLAUDE.md` forbids without the owner's decision.
-  Issue/PR/comment bodies contain only the intended Rule-11 "Built with Claude Code" disclosure.
+- **Claude attribution:** none in any commit, PR, issue or comment added by this team's later work
+  (checked: zero trailers in every commit after `674f717`); the only Claude text is the intended
+  Rule-11 "Built with Claude Code" README disclosure. Four early planning-session commits
+  (`3b4365b`, `dc17d90`, `fc1ba1d`, `b3263a9`) carry `Co-Authored-By: Claude ...` trailers; by the
+  owner's decision this old history is kept as is (not rewritten). GitHub's contributors API lists
+  only humans.
