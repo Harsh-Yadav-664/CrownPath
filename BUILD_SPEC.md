@@ -195,7 +195,7 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 ## 8. Agent + architecture
 
 - **Agent loop** (`agent/run.py`): takes a question ("what do we fix first / what's the real risk?"), calls graph tools, returns a **ranked remediation list where every item cites its attack path.** The decision must be justified by the path and the choke-point result, never by CVSS.
-- **Graph tools exposed via MCP** (`mcp/server.py`): `ingest_findings`, `find_attack_paths(crown_jewel)`, `shortest_path(a,b)`, `rank_by_reachability`, `choke_points`. Exposing them over MCP directly hits Track 01's "tool selection through MCP" focus. FalkorDB does ship an official MCP server (`FalkorDB/FalkorDB-MCPServer`, per docs.falkordb.com/genai-tools/mcpserver), but it exposes generic Cypher/graph-management tools, not these domain tools, so we wrap our own thin one and mention the official server in the README as an alternative for raw Cypher access.
+- **Graph tools exposed via MCP** (`crownpath_mcp/server.py` — renamed from the originally-specified `mcp/server.py`; that name collides with the third-party `mcp` SDK itself, confirmed live during #20, see docs/HANDOFF.md): `ingest_findings`, `find_attack_paths(crown_jewel)`, `shortest_path(a,b)`, `rank_by_reachability`, `choke_points`. Exposing them over MCP directly hits Track 01's "tool selection through MCP" focus. FalkorDB does ship an official MCP server (`FalkorDB/FalkorDB-MCPServer`, per docs.falkordb.com/genai-tools/mcpserver), but it exposes generic Cypher/graph-management tools, not these domain tools, so we wrap our own thin one and mention the official server in the README as an alternative for raw Cypher access.
 - **Explainability output** (`ui/`): FastAPI + one static page (Cytoscape.js or vis-network) that highlights the traced path. This is our **primary** demo visual: the team's dev DB is FalkorDB Cloud with no `localhost:3000` browser, so the custom UI is not optional polish here (it is also what the live deployment serves). If FalkorDB Cloud provides its own browser/graph view, it may supplement the demo, but the custom UI is the deliverable.
 
 ---
@@ -254,7 +254,7 @@ Refine edge set/direction during the build; the invariant is multi-hop reachabil
 - C3 Prompt + output format: justification by path + choke-point, never CVSS.
 
 **Epic D — Differentiators (P1)**
-- D1 `mcp/server.py`: MCP server exposing the graph tools; agent consumes via MCP.
+- D1 `crownpath_mcp/server.py` (renamed from `mcp/server.py` — name collision with the `mcp` SDK, see docs/HANDOFF.md): MCP server exposing the graph tools; agent consumes via MCP.
 - D2 `lib/chokepoints.py`: query 7c; output "fix X → sever N of M paths."
 - D2 `lib/chokepoints.py`: query 7c; output "fix X → sever N of M paths." **(P0 — the headline; see §9.)**
 - D3 `ui/`: FastAPI + one page highlighting the path (Cytoscape/vis-network). **Primary demo visual** (no `localhost:3000` on the Cloud dev DB); also the page the live deployment serves.
@@ -295,7 +295,7 @@ crownpath/
     schema.py  graph.py  ingest.py  queries.py  chokepoints.py  tools.py
   agent/
     run.py  prompts/
-  mcp/
+  crownpath_mcp/           renamed from mcp/ — collides with the `mcp` SDK package name
     server.py
   ui/                      minimal path-rendering page (optional)
   data/
