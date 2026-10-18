@@ -3,6 +3,47 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 (20:15 IST) — UI clarity redesign: lead with the answer (`737e098`)
+DONE (presentation only; `ui/static/index.html` is the only file changed. Schema, tool
+signatures, Cypher and `ui/app.py` are untouched):
+  - **Hero first:** "8 findings. Sort them by CVSS and you fix the wrong thing. CrownPath found 6
+    attack paths to the Customer database, and ONE fix kills 4 of them." Every number is filled
+    from the live `/api/*` responses, not hardcoded. If the top-CVSS finding were ever also the
+    choke point, the "wrong thing" claim switches to an honest variant. On the demo, a CVSS sort
+    starts with SQLi on /admin (9.0), which is on only 1 of 6 paths; the answer card shows this.
+  - **"Show me the fix"** (primary) reveals the answer card: the IDOR, 4 of 6 with a bar, the fix
+    text, **Simulate fix** (calls `/api/whatif`) and **Copy fix ticket**.
+  - **Credibility line** under the buttons (synthetic estate + `data/findings.captured.json`
+    from our own self-hosted loopback app; "self-hosted" was added so it can't be read as a
+    third-party target). **Collapsible "What is this?"** intro.
+  - **Graph as evidence:** always-visible legend, a one-line "How to read this", an "Anonymous
+    visitor starts here" tag over the entry row, the crown jewel labelled "THE GOAL" on its own
+    bottom row, short finding names on the canvas, and labels scaled so they render at 13px or
+    larger at the fitted zoom (they were about 9px). Edge labels appear only on single-path view.
+    The graph is sticky on desktop beside the reasoning.
+  - **"Why this answer" panel:** opens with "CVSS shown for context only — CrownPath ranks by
+    reachability, not severity", then plain-English numbered steps, the finding's
+    status/confidence/CWE/evidence/fix, the highest-value route step by step, and the score
+    arithmetic for every route the choke point sits on. Agent and scan-diff answers also render here.
+  - **Verified locally** against the live Cloud graph with headless Chrome (Playwright): all
+    controls work (Show me the fix, Simulate fix, Trace, path select, What changed?, Ask the
+    agent, Reset, taxonomy toggle, node details); 0 console errors; all `/api/*` calls 200; the
+    six `/api/*` responses are identical to the pre-change baseline; no horizontal scroll at 390px;
+    `tests/test_ui_explain.py` + `tests/test_ui_agent.py` pass (6/6).
+  - **Note:** the brief referenced `docs/TEAM_HANDOFF.md` §1 for the intro text. That file does not
+    exist in upstream, the fork, or history, so the intro paraphrases README "What it does".
+BLOCKED: **the live site has not picked up the change.** Render appears to deploy from the fork
+  `harshiit-rana/CrownPath`, not upstream. The fork's `main` is still `6a0da50` (exactly what the
+  live URL serves), 1 commit behind upstream with no divergence, and no deploy appeared 15+ min
+  after the push. The upstream account has read-only access to the fork, so it can't be synced from
+  here. **Fix (teammate, 1 minute):** on github.com/harshiit-rana/CrownPath click **Sync fork ->
+  Update branch** (fast-forward to `737e098`). Render auto-deploys from there, or use **Manual
+  Deploy -> Deploy latest commit** in the Render dashboard. Longer term: point the Render service at
+  upstream `Harsh-Yadav-664/CrownPath` so pushes to main deploy directly.
+  After it deploys, open https://crownpath-st2u.onrender.com/ and click Show me the fix -> Simulate
+  fix, then Trace / What changed? / Ask the agent / Reset (headless walkthrough script used for
+  local verification can be re-run against the live URL).
+
 ## 2026-10-18 — #18 live LLM path verified (Gemini + Groq), provider chain
 Keys supplied as `GEMINI_API_KEY` / `GROQ_API_KEY` in `.env` (never committed; tracked files
 and history grepped for the values: 0 hits). `agent/run.py` now has `provider_chain()` +
