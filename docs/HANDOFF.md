@@ -3,6 +3,39 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — Issues #12, #14, #13 (Sonnet session, continued): B6/B3/B2
+DONE:
+  - #12 (B6): data/gen_findings.py — deterministic generator transcribing docs/demo-scenario.md
+    exactly (4 assets/6 endpoints/3 identities/8 findings, connections=[admin→api],
+    access=[user→api, admin→db]); two runs produce byte-identical data/findings.json; validates
+    against docs/findings.schema.json.
+  - #14 (B3): copied the 4 swiftPentest taxonomy files into data/taxonomy/ (verbatim), updated
+    docs/REUSE.md rows from "pending" to landed. lib/seed_taxonomy.py seeds 77 Technique nodes
+    (union of techniques.jsonl classes + classes.jsonl slugs + chains.jsonl from/to, xss-reflected
+    aliased to xss) and all 24 CHAINS_TO edges, 0 auto-created (every chain endpoint already
+    existed). All 8 demo technique_ids (xss, open-redirect, bfla, idor, ssrf, sqli,
+    mass-assignment, csrf) confirmed present — tests/test_seed.py passes live.
+  - #13 (B2): lib/ingest.py — MERGE-based loader, hard-fails on an unknown technique_id or a
+    schema violation, skips GRANTS/LEADS_TO for non-confirmed findings. **Bug found + fixed
+    during integration**: seed_taxonomy.load_all()'s original order called
+    ingest(reset=True) AFTER seed(), so ingest's own reset wiped the just-seeded Technique/
+    CHAINS_TO nodes before loading findings. Fixed: load_all now does
+    reset→init_schema→seed→ingest(reset=False), resetting exactly once up front.
+  - Full demo load verified live: seed_taxonomy.load_all(g, "data/findings.json") →
+    21 nodes / 32 edges ingested, 0 skipped_attack_edges (f:csrf has no attack-edge FK at all in
+    the frozen demo data, so the skip counter can't exceed 0 from it — see note below).
+  - **Spec clarification (not a blocker, resolved in-session):** issue #13's acceptance checklist
+    expected `skipped_attack_edges >= 1` on the demo graph, but the frozen demo-scenario (#7)
+    gives the inconclusive `f:csrf` no `grants_identity_id`/`leads_to_asset_id` at all — there is
+    nothing to skip. Verified the skip mechanism itself instead with a separate synthetic fixture
+    in tests/test_ingest.py::test_ingest_skips_attack_edges_for_non_confirmed_findings (asserts
+    skipped_attack_edges==2 when a non-confirmed finding DOES carry both FKs). Did not touch the
+    frozen docs/demo-scenario.md or data/gen_findings.py.
+  - 5/5 tests pass live against FalkorDB Cloud (tests/test_graph.py, test_seed.py, test_ingest.py
+    ×3). Graph left reset (empty) after each test run.
+NEXT: #15 (B4 query 7a in lib/queries.py), #16 (B5 query 7b), then Epic C (#17-19 agent).
+BROKEN/blocked: none.
+
 ## 2026-10-18 — Issues #1–#8, #11 (Sonnet session): Epic A foundation + B1
 DONE: all of Epic A closed:
   - #1 (A1): repo scaffold — §12 dirs created, requirements.txt pinned (pip install verified
