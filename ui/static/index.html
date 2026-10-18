@@ -1,769 +1,660 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect x=%274%27 y=%274%27 width=%278%27 height=%278%27 fill=%27%23E8B54A%27 transform=%27rotate(45 8 8)%27/%3E%3C/svg%3E">
 <title>CrownPath</title>
-<meta name="description" content="Fix one finding, sever 4 of 6 attack paths to the customer database. Attack-path triage on FalkorDB." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffcf5c'/%3E%3Cpath d='M7 22l2-11 5 5 2-7 2 7 5-5 2 11z' fill='%233a2a00'/%3E%3C/svg%3E" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-<style>
-  :root {
-    --bg: #0c0f16; --surface: #131722; --surface-2: #191e2b; --border: #252b3b; --border-2: #323a4f;
-    --text: #e9ebf2; --text-2: #b2b8ca; --muted: #8389a0;
-    --accent: #ff5d73; --accent-ink: #2b0a11; --accent-soft: #3a1820;
-    --jewel: #ffcf5c; --ok: #5fd39a; --ok-soft: #14301f; --warn-soft: #3d3214;
-    --radius: 12px;
-  }
-  * { box-sizing: border-box; }
-  [hidden] { display: none !important; }
-  html { -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.55;
-    font-family: Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-  b, strong { font-weight: 650; }
-  code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em;
-    background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
-  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
-
-  /* header */
-  header { border-bottom: 1px solid var(--border); background: var(--surface); }
-  header .wrap { display: flex; align-items: center; gap: 16px; min-height: 58px; flex-wrap: wrap; }
-  .brand { font-weight: 750; font-size: 18px; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
-  .brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--jewel);
-    display: grid; place-items: center; color: #3a2a00; font-size: 13px; }
-  .brand-sub { color: var(--muted); font-size: 14px; }
-  header .spacer { flex: 1; }
-  header a { color: var(--text-2); font-size: 14px; text-decoration: none; }
-  header a:hover { color: var(--text); }
-
-  /* buttons */
-  .btn { font: inherit; font-size: 15px; font-weight: 600; border-radius: 9px; padding: 10px 16px; cursor: pointer;
-    border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text); line-height: 1.2;
-    transition: background .15s, border-color .15s, transform .05s; }
-  .btn:hover { border-color: #46506a; background: #1f2534; }
-  .btn:active { transform: translateY(1px); }
-  .btn:focus-visible { outline: 2px solid var(--jewel); outline-offset: 2px; }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-  .btn.primary:hover { background: #ff7487; border-color: #ff7487; }
-  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-2); }
-  .btn.ghost:hover { color: var(--text); background: var(--surface-2); }
-  .btn.lg { font-size: 17px; padding: 13px 22px; border-radius: 10px; }
-  .btn.sm { font-size: 14px; padding: 7px 12px; border-radius: 8px; }
-
-  /* intro + hero */
-  .hero { padding: 40px 0 28px; }
-  details.intro { margin-bottom: 26px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-  details.intro summary { cursor: pointer; padding: 12px 16px; color: var(--text-2); font-size: 15px; list-style: none;
-    display: flex; align-items: center; gap: 8px; }
-  details.intro summary::-webkit-details-marker { display: none; }
-  details.intro summary::before { content: "+"; display: inline-grid; place-items: center; width: 20px; height: 20px;
-    border-radius: 50%; border: 1px solid var(--border-2); font-size: 14px; color: var(--text-2); }
-  details.intro[open] summary::before { content: "\2212"; }
-  details.intro .body { padding: 0 18px 16px 44px; color: var(--text-2); max-width: 860px; }
-  details.intro .body p { margin: 0 0 10px; }
-  .eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--jewel); font-weight: 650; margin: 0 0 12px; }
-  .hero h1 { font-size: clamp(30px, 4.2vw, 50px); line-height: 1.12; letter-spacing: -.025em; margin: 0 0 16px; max-width: 980px; font-weight: 750; }
-  .hero h1 .soft { color: var(--text-2); }
-  .lede { font-size: clamp(18px, 1.9vw, 23px); line-height: 1.45; color: var(--text-2); margin: 0 0 26px; max-width: 900px; }
-  .lede b { color: var(--text); }
-  .lede .hot { color: var(--accent); }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .cred { margin: 18px 0 0; color: var(--muted); font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
-  .cred .tick { color: var(--ok); }
-
-  /* the answer card */
-  .answer { margin-top: 26px; border: 1px solid #5a2732; background: linear-gradient(180deg, #1c1219 0%, var(--surface) 70%);
-    border-radius: 16px; padding: 22px 24px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; }
-  .answer .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--accent); font-weight: 700; }
-  .answer .title { font-size: clamp(22px, 2.4vw, 30px); font-weight: 750; letter-spacing: -.015em; margin: 6px 0 10px; line-height: 1.2; }
-  .answer .stat { font-size: 17px; color: var(--text-2); }
-  .answer .stat .big { font-size: 34px; font-weight: 800; color: var(--accent); letter-spacing: -.02em; margin-right: 6px; font-variant-numeric: tabular-nums; }
-  .answer .bar { height: 10px; margin: 14px 0 4px; }
-  .answer .vs { margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); font-size: 15px; }
-  .answer .fixbox { background: var(--ok-soft); border: 1px solid #23523a; border-radius: 10px; padding: 12px 14px; font-size: 15px; }
-  .answer .fixbox .lbl { color: var(--ok); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; display: block; margin-bottom: 4px; }
-  .answer .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-  .sim { margin-top: 14px; font-size: 15px; color: var(--text-2); }
-  .sim b { color: var(--text); }
-  .sim .ok { color: var(--ok); }
-
-  /* sections */
-  section.block { padding: 18px 0 8px; }
-  .section-title { font-size: 20px; margin: 0 0 4px; letter-spacing: -.01em; font-weight: 700; }
-  .section-sub { color: var(--muted); margin: 0 0 14px; font-size: 15px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-
-  .ev-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(360px, 1fr); gap: 18px; align-items: start; }
-  #h-kills { white-space: nowrap; }
-  .graph-card { padding: 14px 14px 10px; position: sticky; top: 14px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--text-2); padding: 2px 4px 8px; }
-  .legend span { display: inline-flex; align-items: center; gap: 7px; }
-  .sw { width: 14px; height: 14px; display: inline-block; flex: none; }
-  .sw.endpoint { background: #8ad6c2; border-radius: 50%; }
-  .sw.finding { background: #ff8fa3; transform: rotate(45deg) scale(.85); }
-  .sw.identity { background: #c8a2ff; clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%); }
-  .sw.asset { background: #5aa9e6; border-radius: 3px; }
-  .sw.jewel { background: var(--jewel); border-radius: 3px; outline: 2px solid #fff; outline-offset: -2px; }
-  .sw.path { width: 22px; height: 3px; background: var(--accent); border-radius: 2px; }
-  .howto { margin: 0 4px 10px; font-size: 14.5px; color: var(--muted); }
-  .howto b { color: var(--text-2); }
-  #cy-wrap { position: relative; height: clamp(440px, calc(100vh - 230px), 660px); border-radius: 9px; background: #0f131c; border: 1px solid var(--border); overflow: hidden; }
-  #cy { position: absolute; inset: 0; }
-  .canvas-tag { position: absolute; pointer-events: none; font-size: 14px; font-weight: 650; white-space: nowrap;
-    color: #bff0e2; background: #0f131ce6; border: 1px solid #2f5c50; border-radius: 999px; padding: 3px 12px; transform: translateX(-50%); }
-  #loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 15px; text-align: center; padding: 20px; }
-  .graph-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; padding: 10px 4px 2px; }
-  label.toggle { color: var(--muted); font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
-  .hint { color: var(--muted); font-size: 14px; }
-
-  /* why panel (the star) */
-  .why-card { padding: 20px 22px 22px; border-color: #3a3220; box-shadow: 0 0 0 1px #2a2414 inset; }
-  .why-card h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
-  .cvss-note { margin: 0 0 14px; padding: 8px 12px; border-radius: 8px; background: var(--warn-soft); color: #f2d98c; font-size: 14px; border: 1px solid #5a4a1c; }
-  #headline { font-size: 17px; font-weight: 650; color: var(--jewel); margin: 0 0 12px; line-height: 1.4; }
-  #headline:empty { display: none; }
-  #why { font-size: 15.5px; color: var(--text-2); }
-  #why h3, .why-card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 20px 0 8px; font-weight: 700; }
-  #why .empty { color: var(--muted); }
-  ol.plain { list-style: none; margin: 0; padding: 0; counter-reset: s; }
-  ol.plain li { counter-increment: s; position: relative; padding: 0 0 12px 40px; color: var(--text-2); }
-  ol.plain li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
-    background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text); font-size: 13px; font-weight: 700; display: grid; place-items: center; }
-  ol.plain li b { color: var(--text); }
-  .evidence-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-  .evidence-box .t { font-weight: 700; color: var(--text); font-size: 16px; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
-  .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 13px; background: #262c3d; color: var(--text-2); border: 1px solid transparent; }
-  .chip.ok { background: var(--ok-soft); color: var(--ok); border-color: #23523a; }
-  .chip.no { background: #33282b; color: #e7a9b3; }
-  .chip.cvss { background: transparent; border-color: var(--border-2); color: var(--muted); }
-  .kv { font-size: 14.5px; color: var(--text-2); margin-top: 6px; }
-  .kv .k { color: var(--muted); }
-  .fix { margin-top: 10px; padding: 9px 12px; background: var(--ok-soft); border: 1px solid #23523a; border-radius: 8px; font-size: 14.5px; color: #cdeedd; }
-  .steps { margin: 6px 0 0; padding: 0; list-style: none; }
-  .steps li { padding: 8px 0 8px 14px; border-left: 2px solid var(--border-2); font-size: 15px; line-height: 1.45; color: var(--text-2); }
-  .steps li b { color: var(--text); }
-  .steps li.find { border-left-color: var(--accent); }
-  .steps li.goal { border-left-color: var(--jewel); }
-  .edge { color: var(--muted); font-size: 13px; margin-top: 4px; }
-  .formula { margin-top: 10px; padding: 9px 12px; background: #0f131c; border: 1px solid var(--border); border-radius: 8px;
-    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13.5px; color: var(--text-2); overflow-x: auto; }
-  .formula b { color: var(--jewel); }
-  .arith { margin: 0; padding: 0; list-style: none; }
-  .arith li { padding: 8px 0; border-top: 1px solid var(--border); font-size: 14.5px; }
-  .arith li:first-child { border-top: 0; }
-  .note { color: var(--muted); font-size: 14px; margin-top: 10px; }
-  .banner { display: inline-block; margin-bottom: 8px; padding: 3px 10px; border-radius: 6px; background: var(--warn-soft); color: #f2d98c; font-size: 13.5px; }
-  pre.answer-text { margin: 0; white-space: pre-wrap; font-size: 14px; line-height: 1.55; font-family: inherit; color: var(--text-2); }
-
-  /* lists */
-  .lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
-  .item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
-  .item.click { cursor: pointer; transition: border-color .15s; }
-  .item.click:hover { border-color: var(--border-2); }
-  .item.sel { border-color: var(--accent); }
-  .item.severed { opacity: .5; }
-  .item.severed .sum { text-decoration: line-through; }
-  .item .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
-  .item .name { font-weight: 650; }
-  .score { color: var(--jewel); font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .sum { color: var(--text-2); margin-top: 4px; font-size: 14.5px; }
-  .bar { height: 8px; background: #252b3b; border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
-  .bar > div { height: 100%; background: var(--accent); border-radius: 99px; }
-  .muted { color: var(--muted); }
-  .cut { color: var(--accent); font-weight: 650; font-size: 13.5px; }
-
-  footer { border-top: 1px solid var(--border); margin-top: 30px; padding: 20px 0 34px; color: var(--muted); font-size: 14px; }
-  footer p { margin: 0 0 6px; max-width: 980px; }
-  footer a { color: var(--text-2); }
-
-  @media (max-width: 1020px) {
-    .ev-grid, .lists, .answer { grid-template-columns: 1fr; }
-    .graph-card { position: static; }
-    #cy-wrap { height: 480px; }
-  }
-  @media (max-width: 560px) {
-    .wrap { padding: 0 16px; }
-    .hero { padding-top: 26px; }
-    .brand-sub { display: none; }
-    .btn.lg { width: 100%; }
-    #cy-wrap { height: 400px; }
-    .why-card { padding: 16px; }
-  }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/static/support.js"></script>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <div class="brand"><span class="mark">&#9819;</span>CrownPath</div>
-    <div class="brand-sub">Attack-path triage on FalkorDB</div>
-    <div class="spacer"></div>
-    <a href="https://github.com/Harsh-Yadav-664/CrownPath" target="_blank" rel="noopener">Source &amp; queries &rarr;</a>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#0A0B0D;color:#ECEEF2;font-family:'Geist',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#ECEEF2;text-decoration:none}
+a:hover{color:#E8B54A}
+button,input{font-family:inherit}
+::selection{background:#E8B54A;color:#17120A}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#23272E;border-radius:10px;border:3px solid #0A0B0D}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div id="crownpath" style="min-height:100vh;background:#0A0B0D">
+
+<header ref="{{ headerRef }}" id="cp-topbar" style="position:sticky;top:0;z-index:20;background:rgba(10,11,13,0.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid #1A1D23">
+  <div style="max-width:1440px;margin:0 auto;padding:12px clamp(16px,3vw,32px);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:flex-start;gap:10px;min-width:0">
+      <span style="margin-top:6px;width:10px;height:10px;background:#E8B54A;transform:rotate(45deg);border-radius:1px;flex:none"></span>
+      <div style="min-width:0">
+        <p style="margin:0;font-size:14px;line-height:1.35"><strong style="font-weight:600;letter-spacing:-0.01em">CrownPath</strong> <span style="color:#8A909B">— attack-path triage on FalkorDB</span></p>
+        <p style="margin:2px 0 0;font-size:12.5px;line-height:1.35;color:#7C828D">Give it a security scan — it names the one fix that removes the most risk.</p>
+      </div>
+    </div>
+    <a id="cp-source-link" href="https://github.com/Harsh-Yadav-664/CrownPath" target="_blank" rel="noopener" style="font-size:14px;color:#C9CDD4;display:inline-flex;align-items:center;gap:6px">Source &amp; queries <span style="font-family:'Geist Mono',monospace;color:#8A909B">↗</span></a>
   </div>
 </header>
 
-<main>
-<section class="hero">
-  <div class="wrap">
-    <details class="intro">
-      <summary>What is this? <span class="muted">&mdash; the 30-second version</span></summary>
-      <div class="body">
-        <p>Security scanners hand you a list of findings sorted by severity (CVSS). Attackers don't use one finding at a time &mdash; they <b>chain</b> them. An anonymous visitor uses a medium XSS to steal a user session, that session reaches an internal API, and an IDOR on that API reads the customer database. Each step looks moderate on its own; the chain is critical, and a severity sort can't see it.</p>
-        <p>CrownPath puts every asset, endpoint, finding and identity into a <b>FalkorDB graph</b>, asks the graph for every route from the internet to your most valuable asset (the <b>crown jewel</b>), and finds the <b>one finding most of those routes pass through</b>. Fix that first.</p>
-        <p class="muted">The graph, the attack paths and the choke point on this page are computed live by Cypher queries in FalkorDB. Only confirmed findings can be part of a path.</p>
+<main style="max-width:1440px;margin:0 auto;padding:0 clamp(16px,3vw,32px) 64px">
+
+  <section id="hero" aria-labelledby="hero-h" style="padding:clamp(40px,6vw,80px) 0 clamp(40px,5vw,64px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:clamp(32px,5vw,64px);align-items:end">
+    <div style="min-width:0">
+      <p style="margin:0;font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.14em;color:#E8B54A">WHAT SHOULD WE FIX FIRST, AND WHY?</p>
+      <p id="cp-intro" style="margin:20px 0 0;font-size:clamp(18px,1.6vw,22px);line-height:1.5;font-weight:400;color:#ECEEF2;max-width:52ch;text-wrap:pretty">CrownPath is an AI agent that reads a vulnerability scan and finds <span style="color:#E8B54A;font-weight:500">the single fix that breaks the most attack paths</span> to your critical data — reasoning over a live FalkorDB graph, not a CVSS list.</p>
+      <h1 id="hero-h" style="margin:36px 0 0;font-size:clamp(38px,5vw,68px);line-height:1.02;letter-spacing:-0.035em;font-weight:600;text-wrap:balance"><span style="color:#8A909B">{{ heroFindings }}</span> Sort them by CVSS and you fix the wrong thing.</h1>
+      <p style="margin:22px 0 0;font-size:clamp(17px,1.5vw,20px);line-height:1.5;color:#B4B9C2;max-width:44ch;text-wrap:pretty">CrownPath found <strong style="color:#ECEEF2;font-weight:600">{{ heroPaths }}</strong> to the {{ jewelName }} — and <strong style="color:#E8B54A;font-weight:600">ONE fix kills {{ topSevered }} of them.</strong></p>
+      <div style="margin-top:30px;display:flex;flex-wrap:wrap;gap:10px">
+        <button id="cp-btn-show-fix" onClick="{{ showFix }}" style="display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 20px;border-radius:10px;background:#E8B54A;color:#17120A;font-weight:600;font-size:15px;border:0;cursor:pointer;white-space:nowrap" style-hover="background:#F2C462">Show me the fix <span>→</span></button>
+        <button id="cp-btn-trace-all" onClick="{{ traceAll }}" style="height:46px;padding:0 16px;border-radius:10px;background:transparent;color:#ECEEF2;border:1px solid #2A2F37;font-size:15px;font-weight:500;cursor:pointer;white-space:nowrap" style-hover="background:#15181D;border-color:#3A404A">{{ traceLabel }}</button>
+        <button id="cp-btn-changed" onClick="{{ openChanged }}" style="height:46px;padding:0 16px;border-radius:10px;background:transparent;color:#ECEEF2;border:1px solid #2A2F37;font-size:15px;font-weight:500;cursor:pointer;white-space:nowrap" style-hover="background:#15181D;border-color:#3A404A">What changed since the last scan?</button>
+        <button id="cp-btn-agent" onClick="{{ openAgent }}" style="height:46px;padding:0 16px;border-radius:10px;background:transparent;color:#ECEEF2;border:1px solid #2A2F37;font-size:15px;font-weight:500;cursor:pointer;white-space:nowrap" style-hover="background:#15181D;border-color:#3A404A">Ask the agent</button>
       </div>
-    </details>
-
-    <p class="eyebrow">What should we fix first, and why?</p>
-    <h1 id="hero-title"><span id="h-findings">8 findings.</span> <span class="soft" id="h-claim">Sort them by CVSS and you fix the wrong thing.</span></h1>
-    <p class="lede">CrownPath found <b id="h-paths">6 attack paths</b> to the <b id="h-jewel">Customer database</b> &mdash; and <b class="hot">ONE fix</b> kills <b id="h-kills">4 of them</b>.</p>
-
-    <div class="actions">
-      <button id="choke-btn" class="btn primary lg">Show me the fix</button>
-      <button id="trace-btn" class="btn">Trace all 6 attack paths</button>
-      <button id="changes-btn" class="btn ghost">What changed since the last scan?</button>
-      <button id="agent-btn" class="btn ghost">Ask the agent</button>
-      <button id="reset-btn" class="btn ghost">Reset</button>
+      <div style="margin-top:22px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px">
+        <p style="margin:0;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5;color:#5BD49A;flex:1 1 320px">
+          <span style="flex:none;margin-top:3px;width:16px;height:16px;border-radius:50%;border:1.5px solid #5BD49A;display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:1">✓</span>
+          <span>Validated on a synthetic estate and on findings captured from a live, self-hosted vulnerable app.</span>
+        </p>
+        <button id="cp-btn-tested" onClick="{{ openTested }}" style="flex:none;display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:8px;background:#121418;color:#ECEEF2;border:1px solid #2A2F37;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap" style-hover="border-color:#3A404A;background:#16191E"><span style="font-family:'Geist Mono',monospace;font-size:11px;color:#8A909B">SCOPE</span>What was tested</button>
+      </div>
     </div>
-    <p class="cred"><span class="tick">&#10003;</span><span>Validated on a synthetic estate and on findings captured from a live, self-hosted vulnerable app (<code>data/findings.captured.json</code>).</span></p>
 
-    <div id="answer" class="answer" hidden></div>
-  </div>
-</section>
-
-<section class="block">
-  <div class="wrap">
-    <h2 class="section-title">The evidence</h2>
-    <p class="section-sub">Every number above comes from this graph. Click any node for its details.</p>
-    <div class="ev-grid">
-      <div class="card graph-card">
-        <div class="legend" aria-label="Legend">
-          <span><i class="sw endpoint"></i>endpoint</span>
-          <span><i class="sw finding"></i>finding</span>
-          <span><i class="sw identity"></i>identity (session)</span>
-          <span><i class="sw asset"></i>asset</span>
-          <span><i class="sw jewel"></i>crown jewel</span>
-          <span><i class="sw path"></i>attack path</span>
+    <sc-if value="{{ heroCompare }}" hint-placeholder-val="{{ true }}">
+      <aside id="cp-cvss-compare" aria-label="CVSS ranking compared" style="background:#0F1115;border:1px solid #1D2026;border-radius:16px;padding:24px;min-width:0">
+        <p style="margin:0;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.14em;color:#8A909B">THE SAME 8 FINDINGS, SORTED BY CVSS</p>
+        <div role="table" style="margin-top:18px;display:flex;flex-direction:column;font-size:14px">
+          <div role="row" style="display:grid;grid-template-columns:24px minmax(0,1fr) 56px 64px;gap:12px;padding:0 12px 10px;font-family:'Geist Mono',monospace;font-size:11px;color:#7C828D;letter-spacing:0.06em">
+            <span>#</span><span>FINDING</span><span style="text-align:right">CVSS</span><span style="text-align:right">PATHS</span>
+          </div>
+          <sc-for list="{{ cmpRows }}" as="r">
+          <div role="row" style="display:grid;grid-template-columns:24px minmax(0,1fr) 56px 64px;gap:12px;padding:11px 12px;border:{{ r.bd }};border-top:{{ r.bt }};background:{{ r.bg }};border-radius:10px;align-items:center">
+            <span style="font-family:'Geist Mono',monospace;color:{{ r.numC }}">{{ r.n }}</span><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">{{ r.name }} <sc-if value="{{ r.top }}"><span style="font-family:'Geist Mono',monospace;font-size:10.5px;color:#E8B54A;letter-spacing:0.06em">CROWNPATH #1</span></sc-if></span><span style="text-align:right;font-family:'Geist Mono',monospace;color:#C9CDD4">{{ r.cvss }}</span><span style="text-align:right;font-family:'Geist Mono',monospace;color:{{ r.pc }}">{{ r.paths }}</span>
+          </div>
+          </sc-for>
         </div>
-        <p class="howto"><b>How to read this:</b> an attacker starts at the top with no login, follows the arrows through findings and stolen sessions, and is trying to reach the gold crown jewel at the bottom.</p>
-        <div id="cy-wrap">
-          <div id="cy"></div>
-          <div id="tag-entry" class="canvas-tag" hidden>&darr; Anonymous visitor starts here</div>
-          <div id="loading">Loading the graph from FalkorDB&hellip;<br><span class="muted">(the free server can take up to a minute to wake)</span></div>
-        </div>
-        <div class="graph-foot">
-          <span class="hint">Scroll to zoom &middot; drag to pan</span>
-          <label class="toggle"><input type="checkbox" id="taxonomy-toggle"> Show the 77-technique taxonomy</label>
-        </div>
-      </div>
-
-      <aside class="card why-card" id="why-card">
-        <h2>Why this answer</h2>
-        <p class="cvss-note">CVSS shown for context only &mdash; CrownPath ranks by reachability, not severity.</p>
-        <div id="headline"></div>
-        <div id="why"></div>
-        <div id="detail-section" hidden>
-          <h3>Selected node</h3>
-          <div id="detail" class="evidence-box"></div>
-        </div>
+        <p style="margin:16px 0 0;font-size:13.5px;line-height:1.5;color:#8A909B;text-wrap:pretty">{{ cmpNote }}</p>
       </aside>
-    </div>
-  </div>
-</section>
+    </sc-if>
+  </section>
 
-<section class="block">
-  <div class="wrap lists">
-    <div>
-      <h2 class="section-title">Which single fix breaks the most paths</h2>
-      <p class="section-sub">Each finding, by how many attack paths it sits on.</p>
-      <div id="chokes"></div>
+  <section id="cp-metrics" aria-label="Key results" style="margin-bottom:clamp(56px,7vw,96px);border-top:1px solid #1D2026;border-bottom:1px solid #1D2026;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))">
+    <div style="padding:28px 24px 28px 0;border-right:1px solid #1D2026">
+      <p style="margin:0;font-size:clamp(40px,4.4vw,56px);font-weight:500;letter-spacing:-0.04em;line-height:1">{{ mFindings }}</p>
+      <p style="margin:12px 0 0;font-size:14px;line-height:1.45;color:#B4B9C2">findings in the scan</p>
     </div>
-    <div>
-      <h2 class="section-title">Every attack path, ranked</h2>
-      <p class="section-sub">Ranked by likelihood &times; impact. Click one to trace it.</p>
-      <div id="paths"></div>
+    <div style="padding:28px 24px;border-right:1px solid #1D2026">
+      <p style="margin:0;font-size:clamp(40px,4.4vw,56px);font-weight:500;letter-spacing:-0.04em;line-height:1;color:#F0524F">{{ total }}</p>
+      <p style="margin:12px 0 0;font-size:14px;line-height:1.45;color:#B4B9C2">attack paths reach the {{ jewelName }}</p>
     </div>
-  </div>
-</section>
+    <div style="padding:28px 24px;border-right:1px solid #1D2026">
+      <p style="margin:0;font-size:clamp(40px,4.4vw,56px);font-weight:500;letter-spacing:-0.04em;line-height:1;color:#E8B54A">{{ topSevered }}<span style="color:#5B6370;font-size:0.5em;letter-spacing:0">&nbsp;/ {{ total }}</span></p>
+      <p style="margin:12px 0 0;font-size:14px;line-height:1.45;color:#B4B9C2">paths broken by one fix — {{ topName }}</p>
+    </div>
+    <div style="padding:28px 0 28px 24px">
+      <p style="margin:0;font-size:clamp(40px,4.4vw,56px);font-weight:500;letter-spacing:-0.04em;line-height:1">{{ cvssTopPaths }}</p>
+      <p style="margin:12px 0 0;font-size:14px;line-height:1.45;color:#B4B9C2">paths through the highest-CVSS finding ({{ cvssTopVal }})</p>
+    </div>
+  </section>
+
+  <section id="workspace" ref="{{ workspaceRef }}" aria-labelledby="ev-h" style="display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <div>
+        <p style="margin:0;font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.14em;color:#8A909B">EVIDENCE</p>
+        <h2 id="ev-h" style="margin:10px 0 0;font-size:clamp(26px,3vw,36px);font-weight:600;letter-spacing:-0.025em;line-height:1.1">How CrownPath got there</h2>
+      </div>
+      <p style="margin:0;font-size:14px;color:#8A909B;max-width:44ch">Pick a path or simulate a fix on the right — the graph updates on the left.</p>
+    </div>
+
+    <div style="display:grid;gap:24px;align-items:start;grid-template-columns:{{ wsCols }}">
+
+      <article id="graph-panel" aria-label="Attack graph" style="background:#0F1115;border:1px solid #1D2026;border-radius:16px;min-width:0;display:flex;flex-direction:column;overflow:hidden;position:sticky;top:{{ stickyTop }};z-index:5;height:{{ graphHeight }}">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid #1A1D23">
+          <div style="display:flex;align-items:center;gap:16px;min-width:0">
+            <div style="min-width:0">
+              <h3 style="margin:0;font-size:15px;font-weight:600">Attack graph</h3>
+              <p id="cp-graph-caption" style="display:{{ captionDisplay }};margin:3px 0 0;font-family:'Geist Mono',monospace;font-size:12px;color:#8A909B">{{ graphCaption }}</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div id="cp-remaining" aria-live="polite" style="display:flex;align-items:baseline;gap:8px">
+              <span style="font-family:'Geist Mono',monospace;font-size:24px;line-height:1;color:{{ remainingColor }}">{{ remaining }}<span style="color:#4A515C">/{{ total }}</span></span>
+              <span style="display:{{ counterLabel }};font-size:12px;color:#8A909B;line-height:1.2;max-width:72px">paths reach the goal</span>
+            </div>
+            <div style="display:flex;gap:4px;padding:3px;background:#0A0B0D;border:1px solid #1D2026;border-radius:8px">
+              <button onClick="{{ modeSingle }}" style="height:28px;padding:0 10px;border-radius:6px;border:0;cursor:pointer;font-size:12.5px;background:{{ modeSingleBg }};color:{{ modeSingleColor }}">Selected path</button>
+              <button onClick="{{ modeAll }}" style="height:28px;padding:0 10px;border-radius:6px;border:0;cursor:pointer;font-size:12.5px;background:{{ modeAllBg }};color:{{ modeAllColor }}">All {{ total }} paths</button>
+            </div>
+          </div>
+        </div>
+        <div id="cp-graph" style="flex:1;min-height:{{ graphMin }};padding:6px 8px;display:flex">{{ graph }}</div>
+        <div style="padding:{{ footPad }};border-top:1px solid #1A1D23;display:flex;flex-direction:column;gap:10px">
+          <ul aria-label="Legend" style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:{{ legendWrap }};overflow-x:auto;gap:8px 16px;font-size:12px;color:#B4B9C2">
+            <li style="flex:none;display:flex;align-items:center;gap:7px"><span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #5B6370"></span>Endpoint</li>
+            <li style="flex:none;display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;background:#3A1C1E;border:1.5px solid #7A3434;transform:rotate(45deg)"></span>Finding</li>
+            <li style="flex:none;display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:2px;border:1.5px solid #7C8794"></span>Identity</li>
+            <li style="flex:none;display:flex;align-items:center;gap:7px"><span style="width:11px;height:11px;border-radius:50%;background:#2A2F37;border:1.5px solid #4A515C"></span>Asset</li>
+            <li style="flex:none;display:flex;align-items:center;gap:7px"><span style="width:10px;height:10px;background:#E8B54A;transform:rotate(45deg)"></span>Crown jewel</li>
+            <li style="flex:none;display:flex;align-items:center;gap:7px"><span style="width:18px;height:2px;background:#F0524F;border-radius:2px"></span>Attack path</li>
+            <li style="flex:none;display:flex;align-items:center;gap:7px"><span style="width:18px;height:0;border-top:2px dashed #2E5A45"></span>Broken by fix</li>
+          </ul>
+          <p style="margin:0;font-size:12.5px;line-height:1.5;color:#8A909B;text-wrap:pretty;white-space:{{ howWrap }};overflow:hidden;text-overflow:ellipsis"><strong style="color:#C9CDD4;font-weight:500">How to read this:</strong> start at the anonymous visitor on top and follow the red line down to the gold goal. Every diamond is a real, exploitable finding.</p>
+        </div>
+      </article>
+
+      <div id="cp-right-column" ref="{{ rightRef }}" style="min-width:0;position:relative;display:flex;flex-direction:column;gap:16px">
+
+        <article id="why-panel" aria-label="Why this answer" style="flex:none;background:#0F1115;border:1px solid #1D2026;border-radius:16px">
+          <div style="padding:14px 18px;border-bottom:1px solid #1A1D23;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <h3 style="margin:0;font-size:15px;font-weight:600">Why this answer</h3>
+            <span id="cp-why-title" style="font-family:'Geist Mono',monospace;font-size:12px;color:#8A909B">{{ reasonTitle }}</span>
+          </div>
+          <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+            <p style="margin:0;padding:10px 12px;border-radius:10px;background:rgba(232,181,74,0.08);border:1px solid rgba(232,181,74,0.28);font-size:13px;line-height:1.5;color:#F1DDB0">CVSS shown for context only — CrownPath ranks by reachability, not severity.</p>
+            <sc-if value="{{ selBroken }}" hint-placeholder-val="{{ false }}">
+              <p style="margin:0;padding:9px 12px;border-radius:10px;background:rgba(91,212,154,0.08);border:1px solid rgba(91,212,154,0.3);font-size:13px;color:#9BE6C1">This path is broken by your simulated fix.</p>
+            </sc-if>
+            <ol id="cp-why-steps" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+              <sc-for list="{{ steps }}" as="s" hint-placeholder-count="7">
+                <li style="display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid #16191E">
+                  <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:#7C828D;padding-top:2px">{{ s.num }}</span>
+                  <div style="min-width:0">
+                    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+                      <sc-if value="{{ s.isFinding }}"><span style="font-size:14px;font-weight:600;color:#F0524F">{{ s.title }}</span></sc-if>
+                      <sc-if value="{{ s.isGoal }}"><span style="font-size:14px;font-weight:600;color:#E8B54A">{{ s.title }}</span></sc-if>
+                      <sc-if value="{{ s.isPlain }}"><span style="font-size:14px;font-weight:500;color:#ECEEF2">{{ s.title }}</span></sc-if>
+                      <span style="font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.08em;color:#7C828D">{{ s.kind }}</span>
+                      <sc-if value="{{ s.hasDetail }}"><span style="font-size:12.5px;color:#7C828D">{{ s.detail }}</span></sc-if>
+                    </div>
+                    <sc-if value="{{ s.isFinding }}">
+                      <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;font-family:'Geist Mono',monospace;font-size:11px">
+                        <span style="padding:2px 7px;border-radius:6px;background:rgba(91,212,154,0.1);color:#7FE0B2">{{ s.status }}</span>
+                        <span style="padding:2px 7px;border-radius:6px;background:#16191E;color:#C9CDD4">confidence {{ s.conf }}</span>
+                        <span style="padding:2px 7px;border-radius:6px;background:#16191E;color:#C9CDD4">{{ s.cwe }}</span>
+                        <span style="padding:2px 7px;border-radius:6px;border:1px solid #23272E;color:#8A909B">CVSS {{ s.cvss }} · context</span>
+                      </div>
+                    </sc-if>
+                  </div>
+                </li>
+              </sc-for>
+            </ol>
+            <div id="cp-score" style="padding:12px 14px;border-radius:12px;background:#0A0B0D;border:1px solid #1D2026">
+              <p style="margin:0;font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.12em;color:#7C828D">SCORE</p>
+              <p style="margin:6px 0 0;font-family:'Geist Mono',monospace;font-size:16px;color:#ECEEF2;line-height:1.4">{{ scoreMath }}</p>
+              <p style="margin:6px 0 0;font-size:12px;color:#8A909B;line-height:1.5">product of finding confidences × crown-jewel value ÷ hops</p>
+            </div>
+          </div>
+        </article>
+
+        <section id="fix-ranking" ref="{{ fixRef }}" aria-labelledby="fix-h" style="flex:none;padding-top:40px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <div>
+              <p style="margin:0;font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.14em;color:#8A909B">WHICH SINGLE FIX BREAKS THE MOST PATHS</p>
+              <h2 id="fix-h" style="margin:8px 0 0;font-size:clamp(24px,2.4vw,30px);font-weight:600;letter-spacing:-0.025em;line-height:1.15;text-wrap:balance">{{ fixHeadline }}</h2>
+            </div>
+            <sc-if value="{{ hasFixes }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ resetFixes }}" style="height:30px;padding:0 12px;border-radius:8px;background:transparent;color:#B4B9C2;border:1px solid #2A2F37;font-size:12.5px;cursor:pointer" style-hover="background:#15181D">Reset fixes</button>
+            </sc-if>
+          </div>
+          <ol id="cp-fix-list" style="list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ fixRows }}" as="f" hint-placeholder-count="8">
+              <li data-finding-id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:12px;background:{{ f.bg }};border:1px solid {{ f.border }};box-shadow:{{ f.shadow }};opacity:{{ f.op }};transition:box-shadow .4s, border-color .4s, background .3s">
+                <div style="display:flex;gap:12px;align-items:flex-start;min-width:0">
+                  <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:#7C828D;padding-top:3px;width:18px;flex:none">{{ f.rank }}</span>
+                  <div style="min-width:0;flex:1">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                      <h3 style="margin:0;font-size:15px;font-weight:600;letter-spacing:-0.01em">{{ f.name }}</h3>
+                      <sc-if value="{{ f.isTop }}"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;background:rgba(232,181,74,0.12);color:#E8B54A;font-size:11.5px;font-weight:500">★ Highest-value fix</span></sc-if>
+                      <sc-if value="{{ f.isFixed }}"><span style="padding:2px 8px;border-radius:999px;background:rgba(91,212,154,0.12);color:#7FE0B2;font-size:11.5px;font-weight:500">Fix simulated</span></sc-if>
+                    </div>
+                    <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:#8A909B">
+                      <span style="font-family:'Geist Mono',monospace">{{ f.meta }}</span>
+                      <span style="padding:1px 7px;border-radius:6px;border:1px solid #23272E;font-family:'Geist Mono',monospace;font-size:11px;color:#8A909B">{{ f.cvssLabel }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;padding-left:30px">
+                  <div style="flex:1 1 160px;min-width:140px;display:flex;align-items:center;gap:10px">
+                    <div style="flex:1;display:grid;grid-template-columns:repeat(6,1fr);gap:3px">
+                      <sc-for list="{{ f.segs }}" as="g"><span style="height:7px;border-radius:2px;background:{{ g.c }}"></span></sc-for>
+                    </div>
+                    <span style="flex:none;font-family:'Geist Mono',monospace;font-size:12px;color:{{ f.countColor }}">{{ f.countLabel }}</span>
+                  </div>
+                  <div style="flex:none;display:flex;gap:6px;flex-wrap:wrap">
+                    <sc-if value="{{ f.hasPaths }}">
+                      <button onClick="{{ f.simulate }}" style="height:32px;padding:0 12px;border-radius:8px;background:{{ f.simBg }};color:{{ f.simColor }};border:1px solid {{ f.simBorder }};font-size:13px;font-weight:500;cursor:pointer">{{ f.simLabel }}</button>
+                      <button onClick="{{ f.copy }}" style="height:32px;padding:0 12px;border-radius:8px;background:transparent;color:#B4B9C2;border:1px solid #2A2F37;font-size:13px;cursor:pointer" style-hover="background:#15181D;color:#ECEEF2">{{ f.copyLabel }}</button>
+                    </sc-if>
+                    <sc-if value="{{ f.noPaths }}"><span style="font-size:12.5px;color:#7C828D">Reaches no path to the goal</span></sc-if>
+                  </div>
+                </div>
+              </li>
+            </sc-for>
+          </ol>
+        </section>
+
+        <section id="attack-paths" ref="{{ pathsRef }}" aria-labelledby="paths-h" style="flex:none;padding-top:40px">
+          <p style="margin:0;font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:0.14em;color:#8A909B">EVERY ATTACK PATH, RANKED</p>
+          <h2 id="paths-h" style="margin:8px 0 0;font-size:clamp(24px,2.4vw,30px);font-weight:600;letter-spacing:-0.025em;line-height:1.15;text-wrap:balance">{{ pathsHeadline }}</h2>
+          <div id="cp-path-list" style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ pathCards }}" as="p" hint-placeholder-count="6">
+              <button data-path-id="{{ p.id }}" aria-pressed="{{ p.isSel }}" onClick="{{ p.select }}" style="text-align:left;color:inherit;cursor:pointer;padding:14px 16px;border-radius:12px;background:{{ p.bg }};border:1px solid {{ p.border }};opacity:{{ p.op }};display:flex;flex-direction:column;gap:10px;transition:border-color .2s, background .2s" style-hover="border-color:#3A404A">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%">
+                  <span style="font-family:'Geist Mono',monospace;font-size:12.5px;color:#C9CDD4">{{ p.header }}</span>
+                  <sc-if value="{{ p.broken }}"><span style="flex:none;font-size:11.5px;padding:2px 8px;border-radius:999px;background:rgba(91,212,154,0.12);color:#7FE0B2">Broken</span></sc-if>
+                  <sc-if value="{{ p.live }}"><span style="flex:none;font-size:11.5px;padding:2px 8px;border-radius:999px;background:rgba(240,82,79,0.12);color:#F58A87">Live</span></sc-if>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;font-size:12px;line-height:1.3">
+                  <sc-for list="{{ p.hops }}" as="h">
+                    <sc-if value="{{ h.notFirst }}"><span style="color:#4A515C">→</span></sc-if>
+                    <sc-if value="{{ h.plain }}"><span style="padding:3px 7px;border-radius:6px;background:#16191E;color:#C9CDD4;font-family:'Geist Mono',monospace">{{ h.label }}</span></sc-if>
+                    <sc-if value="{{ h.finding }}"><span style="padding:3px 7px;border-radius:6px;background:rgba(240,82,79,0.12);color:#F58A87;font-family:'Geist Mono',monospace">{{ h.label }}</span></sc-if>
+                    <sc-if value="{{ h.fixed }}"><span style="padding:3px 7px;border-radius:6px;background:rgba(91,212,154,0.1);color:#7FE0B2;font-family:'Geist Mono',monospace;text-decoration:line-through">{{ h.label }}</span></sc-if>
+                    <sc-if value="{{ h.goal }}"><span style="padding:3px 7px;border-radius:6px;background:rgba(232,181,74,0.12);color:#E8B54A;font-family:'Geist Mono',monospace">{{ h.label }}</span></sc-if>
+                  </sc-for>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <footer style="margin-top:56px;padding-top:20px;border-top:1px solid #1A1D23;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12.5px;color:#7C828D;font-family:'Geist Mono',monospace">
+    <span>CrownPath · graph on FalkorDB</span>
+    <span>{{ footRight }}</span>
+  </footer>
 </main>
 
-<footer>
-  <div class="wrap">
-    <p>CrownPath is new work for Graph Hacks. Its FalkorDB graph layer, attack-path queries, agent, and explainability output were built during the event. It reuses, from our own prior open-source tool swiftPentest, the vulnerability taxonomy and the findings-data schema. Built with Claude Code.</p>
-    <p>All demo data is synthetic or captured from our own loopback test app. <a href="https://github.com/Harsh-Yadav-664/CrownPath" target="_blank" rel="noopener">GitHub</a></p>
-  </div>
-</footer>
-
-<script>
-const API = "";
-const JEWEL = "asset:db";
-const COLORS = { Asset: "#5aa9e6", Endpoint: "#8ad6c2", Finding: "#ff8fa3", Identity: "#c8a2ff", Technique: "#59607a" };
-const EDGE_PHRASE = {
-  EXPOSES: "serves", HAS_FINDING: "has finding", GRANTS: "grants session", LEADS_TO: "leads to",
-  CAN_ACCESS: "can reach", CONNECTS_TO: "network access", INSTANCE_OF: "instance of", CHAINS_TO: "chains to",
-};
-const DEFAULT_WHY = `<p class="empty">Press <b>Show me the fix</b> for the full reasoning, or click any attack path below to see it step by step.</p>`;
-
-let cy, nodeData = {}, paths = [], chokes = [], selectedPath = null, severedKeys = new Set(), taxonomyMode = false;
-const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const nodeSteps = (p) => p.steps.filter((s) => s.kind === "node");
-const keyOf = (p) => nodeSteps(p).map((s) => s.id).join(">");
-const props = (id) => (nodeData[id] && nodeData[id].props) || {};
-const title = (id) => (nodeData[id] ? nodeData[id].label : id);
-const findings = () => Object.values(nodeData).filter((d) => d.type === "Finding");
-const entries = () => Object.values(nodeData).filter((d) => d.type === "Endpoint" && d.props.auth_required === false);
-const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
-
-async function getJSON(url) {
-  const r = await fetch(API + url);
-  if (!r.ok) throw new Error(`${url} -> HTTP ${r.status}`);
-  return r.json();
-}
-
-/* ---------- graph ---------- */
-function canvasLabel(d) {
-  if (d.id === JEWEL) return `THE GOAL: ${d.label}`;
-  if (d.type === "Identity") return d.props.role === "anonymous" ? "anonymous" : `${d.label} session`;
-  if (d.type === "Finding") {
-    const short = String(d.props.title || d.label).split(" on ")[0];
-    return d.props.status === "confirmed" ? short : `${short} (not confirmed)`;
-  }
-  return d.label;
-}
-
-// Labels are sized in graph units; scale them up when the graph is fitted below 1x so
-// they never render smaller than their nominal pixel size.
-let labelScale = 1;
-const fs = (px) => () => px * labelScale;
-
-function style() {
-  return [
-    { selector: "node", style: { "background-color": (n) => COLORS[n.data("type")] || "#888", label: "data(display)",
-        color: "#dfe3ee", "font-size": fs(13), "font-family": "Inter, Segoe UI, Roboto, sans-serif", "text-wrap": "wrap",
-        "text-max-width": () => 120 * labelScale, "text-valign": "bottom", "text-margin-y": 6, width: 30, height: 30,
-        "text-outline-color": "#0f131c", "text-outline-width": 3 } },
-    { selector: 'node[type = "Finding"]', style: { shape: "diamond", width: 36, height: 36 } },
-    { selector: 'node[type = "Identity"]', style: { shape: "hexagon", width: 32, height: 30 } },
-    { selector: 'node[type = "Asset"]', style: { shape: "round-rectangle", width: 44, height: 34 } },
-    { selector: 'node[type = "Technique"]', style: { width: 16, height: 16, "font-size": fs(12), opacity: .75 } },
-    { selector: "node[?entry]", style: { "border-width": 3, "border-color": "#bff0e2" } },
-    { selector: `node[id = "${JEWEL}"]`, style: { "background-color": "#ffcf5c", width: 64, height: 50, "border-width": 3,
-        "border-color": "#fff", "font-size": fs(15), "font-weight": 700, color: "#ffcf5c", "text-margin-y": 8 } },
-    { selector: "edge", style: { width: 1.5, "line-color": "#363d52", "target-arrow-color": "#363d52",
-        "target-arrow-shape": "triangle", "arrow-scale": 1.1, "curve-style": "bezier", label: "" } },
-    { selector: "edge.hl", style: { "line-color": "#ff5d73", "target-arrow-color": "#ff5d73", width: 3.5 } },
-    { selector: "edge.lbl", style: { label: "data(phrase)", "font-size": fs(12), color: "#ffc2cb", "text-rotation": "autorotate",
-        "text-outline-color": "#0f131c", "text-outline-width": 3 } },
-    { selector: ".hl-node", style: { "border-width": 3, "border-color": "#ff5d73" } },
-    { selector: ".dimmed", style: { opacity: 0.13 } },
-    { selector: ".choke", style: { "background-color": "#ff5d73", width: 52, height: 52, "border-width": 4, "border-color": "#fff",
-        "font-size": fs(15), "font-weight": 700, color: "#ffd1d8" } },
-    { selector: ".fixed", style: { "background-color": "#5fd39a", width: 48, height: 48, "border-width": 4, "border-color": "#fff",
-        "font-size": fs(15), "font-weight": 700, color: "#bff0d6" } },
-    { selector: ":selected", style: { "border-width": 3, "border-color": "#fff" } },
-  ];
-}
-
-function fitAndScale(padding) {
-  cy.fit(undefined, padding);
-  labelScale = Math.min(1.6, Math.max(1, 1 / cy.zoom()));
-  cy.style().update();
-}
-
-function layout() {
-  const es = cy.nodes().filter((n) => n.data("entry"));
-  cy.layout({ name: "breadthfirst", directed: true, roots: es, spacingFactor: 1.1, padding: 40, animate: false }).run();
-  // Nodes no entry point can reach (the Storefront that serves the entries, the unused
-  // anonymous identity) go in a row above the entries, leaving a gap for the "starts here" tag.
-  if (es.length) {
-    const reach = es.union(es.successors()).nodes();
-    const entryY = es[0].position("y");
-    const minX = Math.min(...es.map((n) => n.position("x")));
-    cy.nodes().not(reach).forEach((n, i) => {
-      const kids = n.outgoers("node").filter((k) => k.data("entry"));
-      const x = kids.length ? kids.map((k) => k.position("x")).reduce((a, b) => a + b, 0) / kids.length : minX - 40 + i * 10;
-      n.position({ x, y: entryY - 130 });
-    });
-  }
-  // The crown jewel gets its own bottom row, centred under whatever reaches it, so no
-  // edge into it runs through a neighbouring node.
-  const jewel = cy.getElementById(JEWEL);
-  if (jewel.nonempty()) {
-    const others = cy.nodes().not(jewel);
-    const preds = jewel.incomers("node");
-    const xs = (preds.nonempty() ? preds : others).map((n) => n.position("x"));
-    jewel.position({ x: xs.reduce((a, b) => a + b, 0) / xs.length, y: Math.max(...others.map((n) => n.position("y"))) + 120 });
-  }
-  fitAndScale(40);
-}
-
-let tagFrame = 0;
-function placeTags() {
-  cancelAnimationFrame(tagFrame);
-  tagFrame = requestAnimationFrame(() => {
-    const tag = $("tag-entry");
-    const es = cy ? cy.nodes().filter((n) => n.data("entry")) : null;
-    if (!cy || taxonomyMode || !es || !es.length) { tag.hidden = true; return; }
-    const bb = es.renderedBoundingBox({ includeLabels: false });
-    tag.style.left = `${(bb.x1 + bb.x2) / 2}px`;
-    tag.style.top = `${Math.max(6, bb.y1 - 36)}px`;
-    tag.hidden = false;
-  });
-}
-
-async function loadGraph(taxonomy) {
-  taxonomyMode = taxonomy;
-  const { nodes, edges } = await getJSON(`/api/graph?taxonomy=${taxonomy ? "true" : "false"}`);
-  nodeData = {};
-  nodes.forEach((n) => {
-    const d = n.data;
-    nodeData[d.id] = d;
-    d.display = canvasLabel(d);
-    d.entry = d.type === "Endpoint" && d.props.auth_required === false;
-  });
-  edges.forEach((e) => (e.data.phrase = EDGE_PHRASE[e.data.label] || e.data.label.toLowerCase()));
-  if (cy) cy.destroy();
-  cy = cytoscape({ container: $("cy"), elements: { nodes, edges }, style: style(), wheelSensitivity: 0.25, minZoom: 0.2, maxZoom: 3 });
-  if (taxonomy) { cy.layout({ name: "cose", animate: false }).run(); fitAndScale(30); } else layout();
-  cy.on("tap", "node", (e) => showNode(e.target.id()));
-  cy.on("tap", (e) => { if (e.target === cy) hideNode(); });
-  cy.on("viewport resize render", placeTags);
-  $("loading").hidden = true;
-  placeTags();
-}
-
-function highlightPath(p, dimOthers) {
-  const ids = nodeSteps(p).map((s) => s.id);
-  if (dimOthers) cy.elements().addClass("dimmed");
-  ids.forEach((id, i) => {
-    cy.getElementById(id).removeClass("dimmed").addClass("hl-node");
-    if (i < ids.length - 1) {
-      const e = cy.edges(`[source = "${ids[i]}"][target = "${ids[i + 1]}"]`).removeClass("dimmed").addClass("hl");
-      if (dimOthers) e.filter(longEnough).addClass("lbl");
-    }
-  });
-}
-
-// Label an edge on the canvas only when it is long enough to hold the text clear of its nodes.
-function longEnough(e) {
-  const a = e.source().renderedPosition(), b = e.target().renderedPosition();
-  return Math.hypot(a.x - b.x, a.y - b.y) > 120;
-}
-
-function clearGraph() { if (cy) cy.elements().removeClass("hl lbl hl-node dimmed choke fixed"); }
-
-/* ---------- explanation helpers (every number comes from the graph) ---------- */
-function pathFindings(p) { return p.finding_ids.map((id) => ({ id, ...props(id) })); }
-
-function formula(p) {
-  const fs = pathFindings(p);
-  const jewel = props(JEWEL).value ?? "?";
-  const conf = fs.map((f) => Number(f.confidence).toFixed(2)).join(" &times; ") || "1";
-  return `${conf} <span class="muted">(confidence)</span> &times; ${jewel} <span class="muted">(jewel value)</span> &divide; ${p.length} <span class="muted">hops</span> = <b>${p.score.toFixed(2)}</b>`;
-}
-
-function summary(p) { return nodeSteps(p).map((s) => esc(title(s.id))).join(" &rarr; "); }
-function findingChain(p) { return p.finding_ids.map((id) => esc(title(id))).join(" + "); }
-
-function findingChips(d) {
-  const st = d.status === "confirmed" ? `<span class="chip ok">${esc(d.status)}</span>` : `<span class="chip no">${esc(d.status)}</span>`;
-  return `<div class="chips">${st}<span class="chip">confidence ${Number(d.confidence).toFixed(2)}</span><span class="chip">${esc(d.cwe)}</span><span class="chip cvss">CVSS ${cvssTxt(d.cvss)} &middot; context only</span></div>`;
-}
-function cvssTxt(v) { return Number.isFinite(Number(v)) ? Number(v).toFixed(1) : esc(v); }
-
-function narrative(p) {
-  const steps = p.steps; const out = [];
-  for (let i = 0; i < steps.length; i += 2) {
-    const n = steps[i], d = props(n.id), edge = steps[i + 1];
-    let line = "", cls = "";
-    if (i === 0) line = `An <b>anonymous visitor</b> reaches <b>${esc(title(n.id))}</b> &mdash; no login required.`;
-    else if (n.label === "Finding") {
-      cls = "find";
-      line = `Uses <b>${esc(d.title)}</b>${findingChips(d)}`;
-      if (d.evidence) line += `<div class="kv"><span class="k">Evidence:</span> ${esc(d.evidence)}</div>`;
-    } else if (n.label === "Identity") line = `Now holds a <b>${esc(d.role)}</b> session.`;
-    else if (n.label === "Asset") {
-      if (n.id === JEWEL) { cls = "goal"; line = `<b>Reaches the crown jewel: ${esc(d.name)}</b> (business value ${esc(d.value)}).`; }
-      else line = `Gets into <b>${esc(d.name)}</b>.`;
-    } else line = `Reaches <b>${esc(title(n.id))}</b>.`;
-    const via = edge && steps[i + 2] ? `<div class="edge">&darr; ${esc(EDGE_PHRASE[edge.label] || edge.label)}</div>` : "";
-    out.push(`<li class="${cls}">${line}${via}</li>`);
-  }
-  return `<ol class="steps">${out.join("")}</ol>`;
-}
-
-function setWhy(html, headline) {
-  $("headline").textContent = headline || "";
-  $("why").innerHTML = html;
-}
-
-function scrollToWhy() {
-  if (window.matchMedia("(max-width: 1020px)").matches) $("why-card").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function cvssTop() { return findings().slice().sort((a, b) => Number(b.props.cvss) - Number(a.props.cvss))[0]; }
-function pathsOn(fid) { return paths.filter((p) => p.finding_ids.includes(fid)); }
-
-/* ---------- hero (numbers filled from the live graph) ---------- */
-function renderHero() {
-  const top = chokes[0];
-  const nFind = findings().length;
-  $("h-findings").textContent = `${plural(nFind, "finding")}.`;
-  $("h-paths").textContent = plural(paths.length, "attack path");
-  $("h-jewel").textContent = title(JEWEL);
-  $("trace-btn").textContent = `Trace all ${paths.length} attack paths`;
-  if (top) $("h-kills").textContent = `${top.paths_severed} of them`;
-  const c = cvssTop();
-  if (top && c && c.id === top.finding_id) $("h-claim").textContent = "CVSS happens to agree here, but it can't tell you why.";
-}
-
-function renderAnswer() {
-  const top = chokes[0]; if (!top) return;
-  const d = props(top.finding_id);
-  const c = cvssTop();
-  const cOn = c ? pathsOn(c.id).length : 0;
-  const vs = c && c.id !== top.finding_id
-    ? `<div class="vs">A CVSS sort starts with <b>${esc(c.label)}</b> (CVSS ${Number(c.props.cvss).toFixed(1)}). It sits on only <b>${cOn} of ${top.paths_total}</b> paths.</div>` : "";
-  $("answer").innerHTML = `
-    <div>
-      <div class="kicker">The fix</div>
-      <div class="title">Fix ${esc(top.title)}</div>
-      <div class="stat"><span class="big">${top.paths_severed} of ${top.paths_total}</span>attack paths to ${esc(title(JEWEL))} severed${top.severs_highest_value ? " &mdash; including the highest-value one" : ""}.</div>
-      <div class="bar"><div style="width:${(100 * top.paths_severed) / top.paths_total}%"></div></div>
-      ${vs}
+<sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(5,6,8,0.6);z-index:40"></div>
+  <aside id="cp-drawer" role="dialog" aria-label="{{ drawerTitle }}" style="position:fixed;top:0;right:0;bottom:0;width:min(520px,100vw);background:#0F1115;border-left:1px solid #1D2026;z-index:41;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #1A1D23">
+      <h3 style="margin:0;font-size:16px;font-weight:600">{{ drawerTitle }}</h3>
+      <button onClick="{{ closeDrawer }}" aria-label="Close" style="width:32px;height:32px;border-radius:8px;background:transparent;border:1px solid #2A2F37;color:#B4B9C2;cursor:pointer;font-size:14px">✕</button>
     </div>
-    <div>
-      <div class="fixbox"><span class="lbl">How to fix it</span>${esc(d.fix || "See remediation guidance for this technique.")}</div>
-      <div class="row">
-        <button class="btn primary sm" id="answer-sim">Simulate fix</button>
-        <button class="btn sm" id="answer-ticket">Copy fix ticket</button>
+
+    <sc-if value="{{ isTested }}">
+      <div id="tested-panel" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:22px">
+        <div>
+          <p style="margin:0;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.14em;color:#E8B54A">SCOPE</p>
+          <p style="margin:10px 0 0;font-size:15px;line-height:1.55;color:#DADDE3;text-wrap:pretty">{{ scopeText }}</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+          <div style="padding:12px;border-radius:10px;background:#0A0B0D;border:1px solid #1D2026"><p style="margin:0;font-family:'Geist Mono',monospace;font-size:22px">{{ assetCount }}</p><p style="margin:4px 0 0;font-size:12px;color:#8A909B">assets</p></div>
+          <div style="padding:12px;border-radius:10px;background:#0A0B0D;border:1px solid #1D2026"><p style="margin:0;font-family:'Geist Mono',monospace;font-size:22px">{{ endpointCount }}</p><p style="margin:4px 0 0;font-size:12px;color:#8A909B">endpoints</p></div>
+          <div style="padding:12px;border-radius:10px;background:#0A0B0D;border:1px solid #1D2026"><p style="margin:0;font-family:'Geist Mono',monospace;font-size:22px">{{ findingCount }}</p><p style="margin:4px 0 0;font-size:12px;color:#8A909B">findings, {{ confirmedCount }} confirmed</p></div>
+        </div>
+        <div>
+          <p style="margin:0;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#8A909B">ESTATE · ASSETS &amp; IDENTITIES</p>
+          <ul id="cp-tested-assets" style="list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ assetList }}" as="a">
+              <li style="padding:4px 9px;border-radius:6px;background:#16191E;font-family:'Geist Mono',monospace;font-size:12px;color:{{ a.color }}">{{ a.label }}</li>
+            </sc-for>
+          </ul>
+        </div>
+        <div>
+          <p style="margin:0;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#8A909B">ENDPOINTS PROBED</p>
+          <ul id="cp-tested-endpoints" style="list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ endpointList }}" as="e">
+              <li style="padding:4px 9px;border-radius:6px;border:1px solid #23272E;font-family:'Geist Mono',monospace;font-size:12px;color:#C9CDD4">{{ e.label }}</li>
+            </sc-for>
+          </ul>
+        </div>
+        <div>
+          <p style="margin:0;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#8A909B">FINDINGS</p>
+          <table id="cp-tested-findings" style="margin-top:10px;width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="font-family:'Geist Mono',monospace;font-size:10.5px;letter-spacing:0.08em;color:#7C828D;text-align:left">
+                <th style="padding:0 8px 8px 0;font-weight:400">FINDING</th><th style="padding:0 8px 8px;font-weight:400">CWE</th><th style="padding:0 8px 8px;font-weight:400;text-align:right">CONF.</th><th style="padding:0 0 8px 8px;font-weight:400;text-align:right">PATHS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ findingRows }}" as="r" hint-placeholder-count="8">
+                <tr style="border-top:1px solid #1A1D23">
+                  <td style="padding:9px 8px 9px 0"><span style="font-weight:500">{{ r.label }}</span> <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:#7C828D">{{ r.endpoint }}</span></td>
+                  <td style="padding:9px 8px;font-family:'Geist Mono',monospace;color:#B4B9C2">{{ r.cwe }}</td>
+                  <td style="padding:9px 8px;font-family:'Geist Mono',monospace;text-align:right">{{ r.conf }}</td>
+                  <td style="padding:9px 0 9px 8px;font-family:'Geist Mono',monospace;text-align:right">{{ r.paths }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:0;font-family:'Geist Mono',monospace;font-size:12px;color:#7C828D">Graph: {{ nodeCount }} nodes · {{ edgeCount }} edges</p>
       </div>
-      <div class="sim" id="answer-sim-result"></div>
-    </div>`;
-  $("answer-sim").addEventListener("click", () => simulate(top.finding_id));
-  $("answer-ticket").addEventListener("click", (e) => ticket(top.finding_id, e.currentTarget));
-  $("answer").hidden = false;
-}
+    </sc-if>
 
-/* ---------- actions ---------- */
-function resetAll() {
-  clearGraph();
-  selectedPath = null; severedKeys = new Set();
-  hideNode();
-  $("answer").hidden = true;
-  setWhy(DEFAULT_WHY);
-  renderPaths(); renderChokes();
-  if (cy) { taxonomyMode ? fitAndScale(30) : layout(); }
-}
+    <sc-if value="{{ isChanged }}">
+      <div style="padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:18px">
+        <p style="margin:0;font-family:'Geist Mono',monospace;font-size:12px;color:#8A909B">{{ chgRange }}</p>
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <span style="font-family:'Geist Mono',monospace;font-size:36px;color:#8A909B">{{ chgSince }}</span>
+          <span style="color:#4A515C">→</span>
+          <span style="font-family:'Geist Mono',monospace;font-size:36px;color:#F0524F">{{ chgUntil }}</span>
+          <span style="font-size:13px;color:#8A909B">paths to {{ jewelName }}</span>
+        </div>
+        <p style="margin:0;font-size:14px;color:#DADDE3">{{ chgHeadline }}</p>
+        <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+          <sc-for list="{{ chgRows }}" as="r">
+          <li style="display:grid;grid-template-columns:72px 1fr;gap:12px;padding:14px 0;border-top:1px solid #1A1D23">
+            <span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:{{ r.color }}">{{ r.tag }}</span>
+            <div><p style="margin:0;font-size:14px;font-weight:500">{{ r.title }}</p><p style="margin:4px 0 0;font-size:13px;color:#8A909B">{{ r.detail }}</p></div>
+          </li>
+          </sc-for>
+        </ul>
+      </div>
+    </sc-if>
 
-function prepare() {
-  clearGraph();
-  selectedPath = null; severedKeys = new Set();
-  hideNode();
-  renderPaths(); renderChokes();
-}
+    <sc-if value="{{ isAgent }}">
+      <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ msgs }}" as="m">
+          <sc-if value="{{ m.isAgent }}"><div style="align-self:flex-start;max-width:92%;padding:12px 14px;border-radius:12px;background:#16191E;font-size:14px;line-height:1.55;color:#DADDE3;white-space:pre-wrap">{{ m.text }}</div></sc-if>
+          <sc-if value="{{ m.isUser }}"><div style="align-self:flex-end;max-width:85%;padding:10px 14px;border-radius:12px;background:rgba(232,181,74,0.12);border:1px solid rgba(232,181,74,0.25);font-size:14px;line-height:1.5;color:#F1DDB0">{{ m.text }}</div></sc-if>
+        </sc-for>
+      </div>
+      <div style="padding:16px 20px 20px;border-top:1px solid #1A1D23;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{ suggestions }}" as="q">
+            <button onClick="{{ q.ask }}" style="padding:6px 10px;border-radius:999px;background:transparent;border:1px solid #2A2F37;color:#B4B9C2;font-size:12.5px;cursor:pointer" style-hover="background:#15181D;color:#ECEEF2">{{ q.text }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:8px">
+          <input value="{{ input }}" onChange="{{ onInput }}" onKeyDown="{{ onKey }}" placeholder="Ask the agent about this estate" style="flex:1;min-width:0;height:42px;padding:0 12px;border-radius:10px;background:#0A0B0D;border:1px solid #2A2F37;color:#ECEEF2;font-size:14px;outline:none">
+          <button onClick="{{ send }}" style="height:42px;padding:0 16px;border-radius:10px;background:#E8B54A;color:#17120A;border:0;font-weight:600;font-size:14px;cursor:pointer">Ask</button>
+        </div>
+      </div>
+    </sc-if>
+  </aside>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;heroCompare&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;defaultGraphMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;single&quot;,&quot;all&quot;],&quot;default&quot;:&quot;single&quot;,&quot;tsType&quot;:&quot;'single' | 'all'&quot;}}">
+// ── LIVE DATA ───────────────────────────────────────────────────────────────
+// Everything below is loaded at runtime from the CrownPath API (/api/graph, /api/paths,
+// /api/chokepoints, /api/scope, /api/whatif, /api/changes, /api/agent). Nothing is hardcoded.
+let NODES = {}, EDGES = [], PATHS = [], FIX_ORDER = [];
+let META = { jewelId: null, jewelName: 'crown jewel', scope: null, graphName: '', error: null, nodeCount: 0, edgeCount: 0 };
+const SEVERED = {};
+const ATTACK = ['EXPOSES', 'HAS_FINDING', 'LEADS_TO', 'GRANTS', 'CAN_ACCESS', 'CONNECTS_TO'];
+const KIND = { entry: 'ENTRY', endpoint: 'ENDPOINT', finding: 'FINDING', identity: 'IDENTITY', asset: 'ASSET', goal: 'THE GOAL' };
+const C = { panel: '#0F1115', text: '#ECEEF2', muted: '#8A909B', gold: '#E8B54A', red: '#F0524F', green: '#5BD49A' };
+const SUGGEST = ['What should we fix first, and why?', 'Why not just fix the highest-CVSS finding?', 'What does fixing the top finding leave open?'];
+const nodeLabel = n => n.type === 'Finding' ? String(n.props.title || n.label).split(' on ')[0] : n.type === 'Identity' ? n.props.role : n.label;
+const via = p => FIX_ORDER[0] && p.nodes.includes(FIX_ORDER[0]) ? 'via choke point' : 'via ' + ((NODES[p.nodes.find(n => NODES[n] && NODES[n].kind === 'finding')] || {}).label || 'chain');
+const pathsThrough = id => PATHS.filter(p => p.nodes.includes(id)).length;
+const NARROW = 860;
+async function api(url) { const r = await fetch(url); if (!r.ok) throw new Error(url + ' -> HTTP ' + r.status); return r.json(); }
 
-function traceAll() {
-  if (!paths.length) return;
-  prepare();
-  paths.forEach((p) => highlightPath(p, false));
-  const inconclusive = findings().filter((f) => f.props.status !== "confirmed");
-  setWhy(`<ol class="plain">
-      <li>An anonymous visitor can start at <b>${entries().length}</b> places that need no login: ${entries().map((e) => `<b>${esc(e.label)}</b>`).join(", ")}.</li>
-      <li>Chaining <b>confirmed</b> findings, the graph finds <b>${paths.length}</b> routes from there to <b>${esc(title(JEWEL))}</b> (all highlighted in red).</li>
-      ${inconclusive.length ? `<li>${inconclusive.map((f) => `<b>${esc(f.label)}</b>`).join(", ")} ${inconclusive.length === 1 ? "is" : "are"} not confirmed, so ${inconclusive.length === 1 ? "it carries" : "they carry"} no attack edges and ${inconclusive.length === 1 ? "lies" : "lie"} on <b>0</b> paths.</li>` : ""}
-      <li>Routes are ranked by likelihood &times; impact &mdash; never by CVSS. Click one in the list below to walk through it.</li>
-    </ol>`, `${plural(paths.length, "attack path")} from anonymous entry points to ${title(JEWEL)}.`);
-  scrollToWhy();
-}
-
-function selectPath(i) {
-  const p = paths[i];
-  clearGraph();
-  highlightPath(p, true);
-  selectedPath = i;
-  hideNode();
-  renderPaths();
-  setWhy(`<p class="muted">${plural(p.length, "hop")}, ${plural(p.finding_ids.length, "chained finding")}${p.finding_ids.includes(chokes[0]?.finding_id) ? ` &middot; goes through the choke point` : ""}</p>
-    ${narrative(p)}
-    <h3>Score arithmetic</h3><div class="formula">${formula(p)}</div>
-    <p class="note">Higher score = more likely and more damaging. CVSS never enters it.</p>`,
-    `Path #${i + 1} of ${paths.length}`);
-  scrollToWhy();
-}
-
-async function showChokePoint() {
-  const top = chokes[0];
-  if (!top) return;
-  prepare();
-  renderAnswer();
-  cy.elements().addClass("dimmed");
-  const on = pathsOn(top.finding_id), off = paths.filter((p) => !p.finding_ids.includes(top.finding_id));
-  on.forEach((p) => highlightPath(p, false));
-  cy.getElementById(top.finding_id).removeClass("dimmed").addClass("choke");
-  cy.getElementById(JEWEL).removeClass("dimmed");
-  const d = props(top.finding_id);
-  const best = on[0];
-  setWhy(`<ol class="plain">
-      <li>An anonymous visitor can start at <b>${entries().length}</b> places that need no login: ${entries().map((e) => `<b>${esc(e.label)}</b>`).join(", ")}.</li>
-      <li>Chaining confirmed findings, there are <b>${paths.length}</b> routes from there to <b>${esc(title(JEWEL))}</b>.</li>
-      <li><b>${top.paths_severed} of those ${top.paths_total}</b> routes pass through one finding: <b>${esc(top.title)}</b>${top.severs_highest_value && best ? ` &mdash; including the highest-value route (score ${best.score.toFixed(2)})` : ""}.</li>
-      <li>Fix it and those ${top.paths_severed} routes break. ${off.length ? `The other <b>${off.length}</b> avoid it: ${off.map((p) => findingChain(p)).join("; ")}.` : "No route is left."}</li>
-    </ol>
-    <h3>The finding</h3>
-    <div class="evidence-box"><div class="t">${esc(d.title)}</div>${findingChips(d)}
-      ${d.evidence ? `<div class="kv"><span class="k">Evidence:</span> ${esc(d.evidence)}</div>` : ""}
-      ${d.fix ? `<div class="fix"><b>Fix:</b> ${esc(d.fix)}</div>` : ""}</div>
-    ${best ? `<h3>The highest-value route it sits on, step by step</h3>${narrative(best)}<div class="formula">${formula(best)}</div>` : ""}
-    <h3>Score arithmetic for every route it sits on</h3>
-    <ul class="arith">${on.map((p) => `<li><div>${summary(p)}</div><div class="formula">${formula(p)}</div></li>`).join("")}</ul>
-    <p class="note">Score = product of each finding's confidence &times; the crown jewel's business value &divide; number of hops.</p>`,
-    "");
-  try { const c = await getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`); $("headline").textContent = c.headline || ""; } catch (e) { /* panel already explains it */ }
-  $("answer").scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-async function simulate(findingId) {
-  const out = $("answer-sim-result");
-  if (out && !$("answer").hidden) out.innerHTML = `<span class="muted">Re-running the attack-path query without this finding&hellip;</span>`;
-  let res;
-  try { res = await getJSON(`/api/whatif?finding=${encodeURIComponent(findingId)}&crown_jewel=${JEWEL}`); }
-  catch (e) { if (out) out.innerHTML = `<span class="muted">The simulation is unavailable right now; the explanation above still holds.</span>`; return; }
-  const remain = new Set(res.remaining.map((r) => r.join(">")));
-  severedKeys = new Set(paths.map(keyOf).filter((k) => !remain.has(k)));
-  clearGraph();
-  hideNode();
-  cy.elements().addClass("dimmed");
-  paths.forEach((p) => { if (remain.has(keyOf(p))) highlightPath(p, false); });
-  cy.getElementById(findingId).removeClass("dimmed").addClass("fixed");
-  cy.getElementById(JEWEL).removeClass("dimmed");
-  const bestCut = paths[0] && severedKeys.has(keyOf(paths[0]));
-  const remainingTxt = res.remaining.map((r) => r.filter((id) => id.startsWith("f:")).map((id) => esc(title(id))).join(" + ")).join("; ") || "none";
-  const line = `<b>${severedKeys.size} of ${paths.length}</b> paths severed, <b>${remain.size}</b> remain${bestCut ? " &mdash; the highest-value path is cut" : ""}.`;
-  if (out && !$("answer").hidden && chokes[0] && chokes[0].finding_id === findingId) out.innerHTML = `<span class="ok">&#10003; Simulated in FalkorDB:</span> ${line}`;
-  setWhy(`<p>FalkorDB re-ran the attack-path query with <b>${esc(title(findingId))}</b> excluded. The stored graph is not modified.</p>
-    <ol class="plain"><li>${line}</li><li>What is still open: ${remainingTxt}.</li></ol>
-    <p class="note">The remaining routes stay highlighted in red; the fixed finding is green.</p>`,
-    `If ${title(findingId)} is fixed: ${severedKeys.size} of ${paths.length} paths severed, ${remain.size} remain.`);
-  renderPaths();
-}
-
-function ticket(findingId, btn) {
-  const c = chokes.find((x) => x.finding_id === findingId); const d = props(findingId);
-  const ps = pathsOn(findingId);
-  const md = `## Fix: ${c.title}\n\n**Why first:** it lies on ${c.paths_severed} of ${c.paths_total} attack paths to ${title(JEWEL)}` +
-    `${c.severs_highest_value ? ", including the highest-value path" : ""}.\n\n**Remediation:** ${d.fix || "n/a"}\n\n**Paths severed:**\n` +
-    ps.map((p, i) => `${i + 1}. ${nodeSteps(p).map((s) => title(s.id)).join(" -> ")} (score ${p.score.toFixed(2)})`).join("\n") +
-    `\n\n_Evidence: ${d.status}, confidence ${d.confidence}, ${d.cwe}. CVSS ${d.cvss} not used for ranking. Generated by CrownPath from the FalkorDB attack-path graph._`;
-  const done = () => { const t = btn.textContent; btn.textContent = "Copied!"; setTimeout(() => (btn.textContent = t), 1500); };
-  const fallback = () => setWhy(`<h3>Fix ticket (copy below)</h3><pre class="answer-text">${esc(md)}</pre>`);
-  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(md).then(done).catch(fallback);
-  else fallback();
-}
-
-/* ---------- lists ---------- */
-function renderPaths() {
-  const topId = chokes[0]?.finding_id;
-  $("paths").innerHTML = paths.map((p, i) => {
-    const cut = severedKeys.has(keyOf(p));
-    return `<div class="item click ${selectedPath === i ? "sel" : ""} ${cut ? "severed" : ""}" data-i="${i}" role="button" tabindex="0">
-      <div class="top"><span class="name">Path #${i + 1}${p.finding_ids.includes(topId) ? ' <span class="chip">via choke point</span>' : ""}${cut ? ' <span class="cut">&#9986; severed</span>' : ""}</span><span class="score">score ${p.score.toFixed(2)}</span></div>
-      <div class="sum">${summary(p)}</div></div>`;
-  }).join("");
-  document.querySelectorAll("#paths .item").forEach((el) => {
-    el.addEventListener("click", () => selectPath(+el.dataset.i));
-    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectPath(+el.dataset.i); } });
+async function fetchModel() {
+  const [graph, scope] = await Promise.all([api('/api/graph'), api('/api/scope')]);
+  const jewel = (scope.crown_jewels || [])[0];
+  if (!jewel) throw new Error('no crown jewel in the graph');
+  const [pr, ck] = await Promise.all([api('/api/paths?crown_jewel=' + encodeURIComponent(jewel.id)), api('/api/chokepoints?crown_jewel=' + encodeURIComponent(jewel.id))]);
+  const g = {}; graph.nodes.forEach(n => { g[n.data.id] = n.data; });
+  const epPath = {}; scope.endpoints.forEach(e => { epPath[e.id] = e.path; });
+  const findEp = {}; scope.findings.forEach(f => { findEp[f.id] = epPath[f.endpoint_id]; });
+  const rawPaths = (pr.paths || []).slice().sort((a, b) => b.score - a.score);
+  const pathIds = rawPaths.map(p => p.steps.filter(x => x.kind === 'node').map(x => x.id));
+  const visible = new Set(['anon']); pathIds.forEach(ids => ids.forEach(i => visible.add(i)));
+  const nodes = { anon: { label: 'anonymous visitor', kind: 'entry' } };
+  Object.keys(g).forEach(id => {
+    const d = g[id], isF = d.type === 'Finding';
+    if (!visible.has(id) && !isF) return;
+    const kind = { Endpoint: 'endpoint', Finding: 'finding', Identity: 'identity' }[d.type] || (id === jewel.id ? 'goal' : 'asset');
+    const n = { label: nodeLabel(d), kind, hidden: !visible.has(id) };
+    if (isF) Object.assign(n, { ep: findEp[id] || '', cwe: d.props.cwe || '', conf: Number(d.props.confidence).toFixed(2), cvss: Number(d.props.cvss).toFixed(1), fix: d.props.fix || '', status: d.props.status, conf0: Number(d.props.confidence) });
+    nodes[id] = n;
   });
-}
-
-function renderChokes() {
-  $("chokes").innerHTML = chokes.filter((c) => c.paths_severed > 0).slice(0, 4).map((c, i) => {
-    const d = props(c.finding_id);
-    return `<div class="item">
-      <div class="top"><span class="name">${i === 0 ? "&#9733; " : ""}${esc(c.title)}</span><span class="score">${c.paths_severed} of ${c.paths_total} paths</span></div>
-      <div class="bar"><div style="width:${(100 * c.paths_severed) / c.paths_total}%"></div></div>
-      <div class="muted" style="font-size:14px">Fixing this one finding severs ${plural(c.paths_severed, "path")}${c.severs_highest_value ? ", including the highest-value one" : ""}. <span class="chip cvss">CVSS ${cvssTxt(d.cvss)} &middot; context only</span></div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn sm ${i === 0 ? "primary" : ""}" data-sim="${esc(c.finding_id)}">Simulate fix</button>
-        <button class="btn sm ghost" data-ticket="${esc(c.finding_id)}">Copy fix ticket</button></div>
-    </div>`;
-  }).join("");
-  document.querySelectorAll("[data-sim]").forEach((b) => b.addEventListener("click", () => { simulate(b.dataset.sim); scrollToWhy(); }));
-  document.querySelectorAll("[data-ticket]").forEach((b) => b.addEventListener("click", () => ticket(b.dataset.ticket, b)));
-}
-
-/* ---------- node details ---------- */
-function showNode(id) {
-  const d = nodeData[id]; if (!d) return; const p = d.props;
-  let html = `<div class="t">${esc(d.label)} <span class="chip">${esc(d.type)}</span></div>`;
-  if (d.type === "Finding") {
-    html += findingChips(p);
-    const on = pathsOn(id).length;
-    html += `<div class="kv">${p.status === "confirmed" ? `On <b>${on} of ${paths.length}</b> attack paths.` : "Not confirmed: carries no attack edges, so it lies on no path."}</div>`;
-    if (p.evidence) html += `<div class="kv"><span class="k">Evidence:</span> ${esc(p.evidence)}</div>`;
-    if (p.fix) html += `<div class="fix"><b>Fix:</b> ${esc(p.fix)}</div>`;
-  } else if (d.type === "Asset") {
-    html += `<div class="kv">${esc(p.type)} &middot; business value ${esc(p.value)}${p.is_crown_jewel ? " &middot; <b>crown jewel</b>" : ""}</div>`;
-  } else if (d.type === "Endpoint") {
-    html += `<div class="kv">${p.auth_required ? "Login required" : "<b>Anonymous entry point</b> &mdash; no login needed"}</div>`;
-  } else if (d.type === "Identity") {
-    html += `<div class="kv">Role ${esc(p.role)} &middot; privilege level ${esc(p.privilege_level)}</div>`;
+  const paths = rawPaths.map((p, i) => {
+    const ids = pathIds[i], fs = p.finding_ids.map(f => nodes[f].conf);
+    return { id: i + 1, nodes: ['anon', ...ids], conf: fs.join(' × ') || '1', reach: String(jewel.value), hops: p.length, score: p.score.toFixed(2), key: ids.join('>') };
+  });
+  const edges = [], seen = new Set(), depth = { anon: 0 };
+  paths.forEach(p => p.nodes.forEach((id, i) => {
+    depth[id] = Math.max(depth[id] || 0, i);
+    if (i) { const k = p.nodes[i - 1] + '>' + id; if (!seen.has(k)) { seen.add(k); edges.push([p.nodes[i - 1], id]); } }
+  }));
+  const maxD = Math.max(1, ...Object.values(depth)), H = 130 + maxD * 84;
+  const layers = {}; Object.keys(depth).forEach(id => { (layers[depth[id]] = layers[depth[id]] || []).push(id); });
+  for (let d = 0; d <= maxD; d++) {
+    const ids = layers[d] || [];
+    if (d > 0) ids.sort((a, b) => { const m = id => { const ps = edges.filter(e => e[1] === id).map(e => nodes[e[0]].x); return ps.length ? ps.reduce((x, y) => x + y, 0) / ps.length : 360; }; return m(a) - m(b); });
+    ids.forEach((id, i) => { nodes[id].x = ids.length === 1 ? 360 : 50 + i * (620 / (ids.length - 1)); nodes[id].y = 40 + d * ((H - 120) / maxD); });
   }
-  $("detail").innerHTML = html; $("detail-section").hidden = false;
+  const sevMap = {}; ck.choke_points.forEach(c => { sevMap[c.finding_id] = c.paths_severed; });
+  const allF = Object.keys(nodes).filter(id => nodes[id].kind === 'finding');
+  const order = ck.choke_points.map(c => c.finding_id).filter(id => nodes[id]);
+  allF.filter(id => !order.includes(id)).sort((a, b) => nodes[b].cvss - nodes[a].cvss).forEach(id => order.push(id));
+  return { nodes, edges, paths, order, H, jewel, scope, headline: ck.headline, nodeCount: Object.keys(visible).length || visible.size, edgeCount: edges.length };
 }
-function hideNode() { $("detail-section").hidden = true; }
+let GRAPH_H = 640;
 
-/* ---------- agent + memory (answers render in the Why panel) ---------- */
-async function askAgent() {
-  setWhy(`<p class="muted">Asking the agent&hellip; it picks graph tools itself and cites the paths it finds. This can take up to ~30 s.</p>`, "Agent answer");
-  scrollToWhy();
-  try {
-    const data = await getJSON(`/api/agent?crown_jewel=${JEWEL}`);
-    const banner = data.sample_response ? `Sample response (${esc(data.reason || "recorded run")})`
-      : data.source === "llm" ? "Answered live by the LLM using the graph tools" : "Answered straight from the graph (no LLM needed)";
-    setWhy(`<span class="banner">${banner}</span><pre class="answer-text">${esc(data.answer || "")}</pre>`, "Agent answer");
-  } catch (e) {
-    setWhy(`<p>The agent is unavailable right now; the graph panels still work.</p>`, "Agent answer");
+class Component extends DCLogic {
+  state = { selected: 1, mode: null, fixed: [], drawer: null, copied: null, flash: false, input: '',
+    vw: typeof window !== 'undefined' ? window.innerWidth : 1440, vh: typeof window !== 'undefined' ? window.innerHeight : 900, headerH: 64,
+    ready: false, msgs: [{ role: 'agent', text: 'Ask the agent about this estate. It picks graph tools itself and cites the attack paths it finds.' }] };
+  headerRef = React.createRef(); workspaceRef = React.createRef(); rightRef = React.createRef();
+  fixRef = React.createRef(); pathsRef = React.createRef();
+
+  componentDidMount() {
+    this._onResize = () => this.setState({ vw: window.innerWidth, vh: window.innerHeight, headerH: this.headerRef.current ? this.headerRef.current.offsetHeight : 64 });
+    window.addEventListener('resize', this._onResize); this._onResize();
+    this._onKey = e => { if (e.key === 'Escape' && this.state.drawer) this.setState({ drawer: null }); };
+    window.addEventListener('keydown', this._onKey);
+    this.loadModel();
+  }
+  async loadModel() {
+    try {
+      const m = await fetchModel();
+      NODES = m.nodes; EDGES = m.edges; PATHS = m.paths; FIX_ORDER = m.order; GRAPH_H = m.H;
+      META = { ...META, jewelId: m.jewel.id, jewelName: m.jewel.name, scope: m.scope, graphName: m.scope.graph, error: null, nodeCount: m.nodeCount, edgeCount: m.edgeCount, headline: m.headline };
+      this.setState({ selected: PATHS[0] ? PATHS[0].id : 1, fixed: [], ready: true });
+    } catch (e) { META.error = String(e.message || e); this.setState({ ready: false }); }
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._onResize); window.removeEventListener('keydown', this._onKey); }
+
+  narrow() { return this.state.vw < NARROW; }
+  focusWorkspace(section) {
+    setTimeout(() => {
+      const t = section && section.current ? section.current : this.workspaceRef.current; if (!t) return;
+      const offset = this.state.headerH + 20 + (this.narrow() ? this.graphPx() : 0);
+      window.scrollTo({ top: t.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
+    }, 30);
+  }
+  graphPx() { return Math.min(Math.round(window.innerHeight * 0.62), 560); }
+  isBroken(p) { return this.state.fixed.some(id => (SEVERED[id] || []).includes(p.id)); }
+  async toggleFix(id) {
+    if (this.state.fixed.includes(id)) { this.setState(s => ({ fixed: s.fixed.filter(x => x !== id) })); return; }
+    if (!SEVERED[id]) {
+      try {
+        const r = await api('/api/whatif?finding=' + encodeURIComponent(id) + '&crown_jewel=' + encodeURIComponent(META.jewelId));
+        const remain = new Set(r.remaining.map(x => x.join('>')));
+        SEVERED[id] = PATHS.filter(p => !remain.has(p.key)).map(p => p.id);
+      } catch (e) { this.setState({ simError: String(e.message || e) }); return; }
+    }
+    this.setState(s => ({ fixed: [...s.fixed, id], mode: s.mode || 'all', simError: null }));
+  }
+  copyTicket(id) {
+    const n = NODES[id], c = pathsThrough(id);
+    const text = `[CrownPath] Fix ${n.label} on ${n.ep} (${n.cwe})\nBreaks ${c} of ${PATHS.length} attack paths to ${META.jewelName}.\nConfidence ${n.conf} · CVSS ${n.cvss} (context only)\n\nFix: ${n.fix}`;
+    try { navigator.clipboard && navigator.clipboard.writeText(text).catch(() => {}); } catch (e) {}
+    this.setState({ copied: id }); clearTimeout(this._ct); this._ct = setTimeout(() => this.setState({ copied: null }), 1600);
+  }
+  async ask(q) {
+    const t = (q || '').trim(); if (!t) return;
+    this.setState(s => ({ input: '', msgs: [...s.msgs, { role: 'user', text: t }, { role: 'agent', text: 'Asking the agent\u2026 (up to ~30 s)' }] }));
+    let text;
+    try {
+      const d = await api('/api/agent?crown_jewel=' + encodeURIComponent(META.jewelId) + '&question=' + encodeURIComponent(t));
+      const src = d.sample_response ? 'recorded sample (' + (d.reason || 'fallback') + ')' : d.source === 'llm' ? 'live LLM using the graph tools' : 'computed directly from the graph (no LLM)';
+      text = (d.answer || '') + '\n\n\u2014 answered by: ' + src;
+    } catch (e) { text = 'The agent is unavailable right now; the graph panels still work.'; }
+    this.setState(s => { const m = s.msgs.slice(); m[m.length - 1] = { role: 'agent', text }; return { msgs: m }; });
+  }
+  async openChangedDrawer() {
+    this.setState({ drawer: 'changed', chg: null });
+    try { this.setState({ chg: await api('/api/changes?crown_jewel=' + encodeURIComponent(META.jewelId)) }); } catch (e) { this.setState({ chg: { available: false, error: true } }); }
+  }
+
+  buildGraph(mode) {
+    const h = React.createElement, fixed = this.state.fixed;
+    const active = mode === 'all' ? PATHS : PATHS.filter(p => p.id === this.state.selected);
+    const live = new Set(), dead = new Set(), hl = new Set();
+    active.forEach(p => { const b = this.isBroken(p); p.nodes.forEach((n, i) => { if (i) (b ? dead : live).add(p.nodes[i - 1] + '>' + n); if (!b) hl.add(n); }); });
+    const curve = (a, b) => { const ym = (a.y + b.y) / 2; return `M${a.x} ${a.y} C${a.x} ${ym} ${b.x} ${ym} ${b.x} ${b.y}`; };
+    const base = [], over = [];
+    EDGES.forEach(([a, b]) => {
+      const k = a + '>' + b, d = curve(NODES[a], NODES[b]);
+      if (live.has(k)) {
+        over.push(h('path', { key: k + 'g', d, style: { fill: 'none', stroke: C.red, strokeOpacity: 0.18, strokeWidth: 8 } }));
+        over.push(h('path', { key: k, d, style: { fill: 'none', stroke: C.red, strokeWidth: 2.2 } }));
+      } else if (dead.has(k) || fixed.includes(a) || fixed.includes(b)) {
+        base.push(h('path', { key: k, d, style: { fill: 'none', stroke: dead.has(k) ? '#3F6B55' : '#2E5A45', strokeWidth: 1.6, strokeDasharray: '4 4' } }));
+      } else base.push(h('path', { key: k, d, style: { fill: 'none', stroke: '#262A31', strokeWidth: 1.2 } }));
+    });
+    const lbl = (on, extra) => Object.assign({ fontFamily: "'Geist Mono', monospace", fontSize: 11, fill: on ? C.text : C.muted, textAnchor: 'middle', paintOrder: 'stroke', stroke: C.panel, strokeWidth: 4, strokeLinejoin: 'round' }, extra || {});
+    const nodes = Object.entries(NODES).filter(([id, n]) => !n.hidden).map(([id, n]) => {
+      const on = hl.has(id), fx = fixed.includes(id); let kids;
+      switch (n.kind) {
+        case 'entry': kids = [h('circle', { key: 'h', r: 12, fill: 'rgba(236,238,242,0.08)' }), h('circle', { key: 'c', r: 5, fill: C.text }),
+          h('text', { key: 't', x: 18, y: 4, style: lbl(true, { textAnchor: 'start', fontSize: 11.5 }) }, 'anonymous visitor starts here')]; break;
+        case 'endpoint': kids = [h('circle', { key: 'c', r: 6.5, fill: C.panel, stroke: on ? C.red : '#5B6370', strokeWidth: 1.5 }),
+          h('text', { key: 't', y: -14, style: lbl(on) }, n.label)]; break;
+        case 'finding': kids = [h('rect', { key: 'r', x: -6.5, y: -6.5, width: 13, height: 13, transform: 'rotate(45)', fill: fx ? C.panel : on ? C.red : '#3A1C1E', stroke: fx ? C.green : on ? C.red : '#7A3434', strokeWidth: 1.5 }),
+          h('text', { key: 't', y: 25, style: lbl(on, fx ? { fill: C.green } : null) }, fx ? n.label + ' \u2713' : n.label)]; break;
+        case 'identity': kids = [h('rect', { key: 'r', x: -6, y: -6, width: 12, height: 12, rx: 2, fill: C.panel, stroke: on ? C.red : '#7C8794', strokeWidth: 1.5 }),
+          h('text', { key: 't', y: 23, style: lbl(on) }, n.label)]; break;
+        case 'asset': kids = [h('circle', { key: 'c', r: 6.5, fill: on ? '#4A2224' : '#2A2F37', stroke: on ? C.red : '#4A515C', strokeWidth: 1.5 }),
+          h('text', { key: 't', y: 23, style: lbl(on) }, n.label)]; break;
+        default: {
+          const reached = active.length ? active.some(p => !this.isBroken(p)) : true, col = reached ? C.gold : C.green;
+          kids = [h('circle', { key: 'g', r: 36, fill: col, opacity: 0.08 }),
+          h('rect', { key: 'o', x: -19, y: -19, width: 38, height: 38, transform: 'rotate(45)', fill: 'none', stroke: col, strokeOpacity: 0.4 }),
+          h('rect', { key: 'i', x: -11, y: -11, width: 22, height: 22, transform: 'rotate(45)', fill: C.gold }),
+          h('text', { key: 't', y: 46, style: lbl(true, { fontFamily: "'Geist', sans-serif", fontSize: 13.5, fontWeight: 600 }) }, n.label),
+          h('text', { key: 'g2', y: 62, style: lbl(true, { fill: C.gold, fontSize: 10.5, letterSpacing: '0.14em' }) }, reached ? 'THE GOAL' : 'THE GOAL · PROTECTED')];
+        }
+      }
+      return h('g', { key: id, transform: `translate(${n.x} ${n.y})` }, kids);
+    });
+    return h('svg', { viewBox: '0 0 720 ' + GRAPH_H, preserveAspectRatio: 'xMidYMid meet', role: 'img', 'aria-label': 'Attack graph from anonymous visitor to ' + META.jewelName, style: { width: '100%', height: '100%', display: 'block' } }, base, over, nodes);
+  }
+
+  heroVals(total) {
+    const fs = Object.keys(NODES).filter(id => NODES[id].kind === 'finding');
+    const top = FIX_ORDER[0], topN = NODES[top] || { label: '', ep: '' }, topSev = top ? pathsThrough(top) : 0;
+    const byCvss = fs.slice().sort((a, b) => Number(NODES[b].cvss) - Number(NODES[a].cvss));
+    const worst = byCvss[0], worstN = NODES[worst] || { label: '', cvss: '' };
+    let ids = byCvss.slice(0, 3); if (!ids.includes(top)) ids.push(top); else ids = byCvss.slice(0, 4);
+    const cmpRows = ids.filter(Boolean).map(id => { const n = NODES[id], isTop = id === top, c = pathsThrough(id);
+      return { n: String(byCvss.indexOf(id) + 1), name: n.label, top: isTop, cvss: n.cvss, paths: String(c), numC: isTop ? C.gold : '#7C828D',
+        pc: isTop ? C.red : c ? '#C9CDD4' : '#7C828D', bg: isTop ? 'rgba(232,181,74,0.07)' : 'transparent',
+        bd: isTop ? '1px solid rgba(232,181,74,0.35)' : '0 solid transparent', bt: isTop ? '1px solid rgba(232,181,74,0.35)' : '1px solid #1A1D23' }; });
+    return { heroFindings: `${fs.length} findings.`, heroPaths: `${total} attack paths`, jewelName: META.jewelName, topSevered: topSev, topName: top ? `${topN.label} on ${topN.ep}` : '',
+      traceLabel: `Trace all ${total} attack paths`, cmpRows,
+      cmpNote: worst ? (worst === top ? 'The top CVSS finding is also the choke point here, but only reachability tells you why.' : `The top CVSS finding (${worstN.label}) sits on ${pathsThrough(worst)} of ${total} paths. ${topN.label} sits on ${topSev}.`) : '',
+      mFindings: fs.length, total, cvssTopPaths: worst ? pathsThrough(worst) : 0, cvssTopVal: worstN.cvss,
+      fixHeadline: top ? `Fix ${topN.label} first. It sits on ${topSev} of ${total} paths.` : 'Loading\u2026',
+      pathsHeadline: top ? `${total} ways in. ${topSev} of them share one door.` : 'Loading\u2026',
+      footRight: META.graphName ? `Live from FalkorDB graph "${META.graphName}"` : '' };
+  }
+  scopeVals(total) {
+    const sc = META.scope || { counts: {}, assets: [], endpoints: [], identities: [], findings: [], target: { name: '', description: '', sections: [] } };
+    const sec = (sc.target.sections || [])[0];
+    return { nodeCount: META.nodeCount, edgeCount: META.edgeCount,
+      scopeText: [sc.target.description, sec ? sec.text : ''].filter(Boolean).join('. ').replace(/\.\./g, '.'),
+      assetCount: sc.counts.assets, endpointCount: sc.counts.endpoints, findingCount: sc.counts.findings, confirmedCount: sc.counts.confirmed_findings,
+      assetList: [...sc.assets.map(a => ({ label: a.name, color: a.is_crown_jewel ? C.gold : '#C9CDD4' })), ...sc.identities.map(i => ({ label: 'identity: ' + i.role, color: '#C9CDD4' }))],
+      endpointList: sc.endpoints.map(e => ({ label: `${e.method} ${e.path}${e.auth_required ? '' : ' (anonymous)'}` })),
+      findingRows: sc.findings.map(f => ({ label: f.title.split(' on ')[0], endpoint: f.endpoint || '', cwe: f.cwe || '', conf: Number(f.confidence).toFixed(2), paths: `${pathsThrough(f.id)} / ${total}` })) };
+  }
+  changeVals() {
+    const d = this.state.chg, rows = [];
+    if (!d) return { chgRange: 'Loading from the graph\u2026', chgSince: '\u2026', chgUntil: '\u2026', chgHeadline: '', chgRows: [] };
+    if (!d.available) return { chgRange: '', chgSince: '-', chgUntil: '-', chgHeadline: d.error ? 'Scan history is unavailable right now.' : 'No scan history is recorded in this graph.', chgRows: [] };
+    d.added.forEach(f => rows.push({ tag: '+ NEW', color: '#F58A87', title: f.title, detail: 'First seen in ' + d.until + '.' }));
+    d.removed.forEach(f => rows.push({ tag: '- FIXED', color: '#7FE0B2', title: f.title, detail: 'No longer present in ' + d.until + '.' }));
+    d.regressed.forEach(r => rows.push({ tag: '! REGRESSED', color: '#F0524F', title: r.asset_name, detail: `+${r.new_paths} paths via ${(NODES[r.finding_id] || {}).label || r.finding_id}.` }));
+    if (!rows.length) rows.push({ tag: '= SAME', color: '#8A909B', title: 'No findings added, removed or regressed', detail: '' });
+    return { chgRange: `${d.since} \u2192 ${d.until}`, chgSince: String(d.paths.since), chgUntil: String(d.paths.until), chgHeadline: d.headline, chgRows: rows };
+  }
+
+  renderVals() {
+    const s = this.state, fixed = s.fixed, narrow = this.narrow(), total = PATHS.length;
+    const mode = s.mode || this.props.defaultGraphMode || 'single';
+    const sel = PATHS.find(p => p.id === s.selected) || PATHS[0] || { id: 0, nodes: [], conf: '', reach: '', score: '', hops: 0 };
+    const remaining = PATHS.filter(p => !this.isBroken(p)).length;
+    const on = a => a ? { bg: '#1D2127', c: C.text } : { bg: 'transparent', c: C.muted };
+    const ms = on(mode === 'single'), ma = on(mode === 'all');
+
+    const steps = sel.nodes.map((id, i) => {
+      const n = NODES[id], f = n.kind === 'finding', g = n.kind === 'goal';
+      const detail = { entry: 'No credentials, public internet', endpoint: 'Public, no auth', identity: `Attacker acts as ${n.label}`, asset: 'Reachable from previous hop', goal: 'Crown jewel reached' }[n.kind];
+      return { num: String(i).padStart(2, '0'), title: f ? `${n.label} on ${n.ep}` : n.label, kind: KIND[n.kind], isFinding: f, isGoal: g, isPlain: !f && !g,
+        status: fixed.includes(id) ? 'fix simulated' : 'confirmed', conf: n.conf, cwe: n.cwe, cvss: n.cvss, hasDetail: !f, detail };
+    });
+
+    const fixRows = FIX_ORDER.map((id, i) => {
+      const n = NODES[id], c = pathsThrough(id), fx = fixed.includes(id), top = i === 0, flash = top && s.flash;
+      return { id, rank: String(i + 1).padStart(2, '0'), name: `${n.label} on ${n.ep}`, isTop: top, isFixed: fx,
+        meta: `${n.cwe} · confirmed · ${n.conf}`, cvssLabel: `CVSS ${n.cvss} — context only`,
+        segs: Array.from({ length: total }, (_, k) => ({ c: k < c ? (fx ? C.green : top ? C.gold : '#C2453F') : '#1F232A' })),
+        countLabel: `${c} of ${total} paths`, countColor: c ? (fx ? '#7FE0B2' : C.text) : '#7C828D',
+        hasPaths: c > 0, noPaths: c === 0, op: c ? 1 : 0.7,
+        bg: top ? 'rgba(232,181,74,0.045)' : '#0F1115',
+        border: flash ? C.gold : fx ? 'rgba(91,212,154,0.4)' : top ? 'rgba(232,181,74,0.3)' : '#1D2026',
+        shadow: flash ? '0 0 0 4px rgba(232,181,74,0.15)' : 'none',
+        simLabel: fx ? 'Undo fix' : 'Simulate fix',
+        simBg: fx ? 'rgba(91,212,154,0.1)' : top ? C.gold : '#16191E', simColor: fx ? '#7FE0B2' : top ? '#17120A' : C.text,
+        simBorder: fx ? 'rgba(91,212,154,0.4)' : top ? C.gold : '#2A2F37',
+        simulate: () => this.toggleFix(id), copy: () => this.copyTicket(id), copyLabel: s.copied === id ? 'Copied ✓' : 'Copy fix ticket' };
+    });
+
+    const pathCards = PATHS.map(p => {
+      const b = this.isBroken(p), isSel = p.id === sel.id && mode === 'single';
+      return { id: p.id, isSel, header: `Path ${p.id} · ${via(p)} · score ${p.score}`, broken: b, live: !b, op: b ? 0.55 : 1,
+        border: isSel ? 'rgba(240,82,79,0.6)' : '#1D2026', bg: isSel ? 'rgba(240,82,79,0.05)' : '#0F1115',
+        select: () => this.setState({ selected: p.id, mode: 'single' }),
+        hops: p.nodes.slice(1).map((id, i) => { const n = NODES[id], f = n.kind === 'finding', fx = fixed.includes(id), g = n.kind === 'goal';
+          return { label: n.label, notFirst: i > 0, finding: f && !fx, fixed: fx, goal: g, plain: !f && !g }; }) };
+    });
+
+    const drawerTitle = { agent: 'Ask the agent', changed: 'What changed since the last scan', tested: 'What was tested' }[s.drawer] || '';
+    return {
+      heroCompare: this.props.heroCompare ?? true,
+      headerRef: this.headerRef, workspaceRef: this.workspaceRef, rightRef: this.rightRef, fixRef: this.fixRef, pathsRef: this.pathsRef,
+            wsCols: narrow ? 'minmax(0,1fr)' : (s.vw < 1100 ? 'minmax(0,1fr) minmax(360px,0.85fr)' : 'minmax(0,1.15fr) minmax(0,1fr)'),
+      captionDisplay: (narrow && s.ready) ? 'none' : 'block', graphMin: narrow ? '240px' : (s.vh < 700 ? '200px' : '260px'), counterLabel: s.vw < 1100 ? 'none' : 'inline', footPad: narrow ? '8px 14px 10px' : '12px 18px 14px', howWrap: (narrow || s.vh < 700) ? 'nowrap' : 'normal',
+      graphHeight: narrow ? 'min(62vh, 560px)' : `max(calc(100vh - ${s.headerH + 40}px), 520px)`, stickyTop: (narrow ? s.headerH : s.headerH + 20) + 'px',
+      legendWrap: narrow ? 'nowrap' : 'wrap',
+      showFix: () => { this.setState({ flash: true }); this.focusWorkspace(this.fixRef); clearTimeout(this._ft); this._ft = setTimeout(() => this.setState({ flash: false }), 1800); },
+      traceAll: () => { this.setState({ mode: 'all' }); this.focusWorkspace(this.pathsRef); },
+      openChanged: () => this.openChangedDrawer(), openAgent: () => this.setState({ drawer: 'agent' }), openTested: () => this.setState({ drawer: 'tested' }),
+      closeDrawer: () => this.setState({ drawer: null }),
+      drawerOpen: !!s.drawer, isChanged: s.drawer === 'changed', isAgent: s.drawer === 'agent', isTested: s.drawer === 'tested', drawerTitle,
+      modeSingle: () => this.setState({ mode: 'single' }), modeAll: () => this.setState({ mode: 'all' }),
+      modeSingleBg: ms.bg, modeSingleColor: ms.c, modeAllBg: ma.bg, modeAllColor: ma.c,
+      graph: this.buildGraph(mode),
+      graphCaption: META.error ? 'Could not load the graph: ' + META.error : !s.ready ? 'Loading from FalkorDB\u2026' : mode === 'all' ? `All ${total} paths` : `Path ${sel.id} · score ${sel.score}`,
+      reasonTitle: sel.id ? `Path ${sel.id} · ${via(sel)}` : '', selBroken: this.isBroken(sel), steps,
+      scoreMath: sel.nodes.length ? `${sel.conf} × ${sel.reach} ÷ ${sel.hops} hops = ${sel.score}` : '',
+      ...this.scopeVals(total), ...this.heroVals(total), ...this.changeVals(),
+      fixRows, remaining, remainingColor: remaining ? C.red : C.green, hasFixes: fixed.length > 0,
+      resetFixes: () => this.setState({ fixed: [] }),
+      pathCards,
+      msgs: s.msgs.map(m => ({ text: m.text, isAgent: m.role === 'agent', isUser: m.role === 'user' })),
+      suggestions: SUGGEST.map(t => ({ text: t, ask: () => this.ask(t) })),
+      input: s.input, onInput: e => this.setState({ input: e.target.value }),
+      onKey: e => { if (e.key === 'Enter') this.ask(s.input); }, send: () => this.ask(s.input)
+    };
   }
 }
-
-async function showChanges() {
-  prepare();
-  let d;
-  try { d = await getJSON(`/api/changes?crown_jewel=${JEWEL}`); }
-  catch (e) { setWhy(`<p>Scan history is unavailable right now.</p>`, "What changed between scans"); return; }
-  if (!d.available) { setWhy(`<p>No scan history is recorded in this graph.</p>`, "What changed between scans"); return; }
-  d.added.forEach((f) => cy.getElementById(f.finding_id).addClass("choke"));
-  d.regressed.forEach((r) => cy.getElementById(r.asset_id).addClass("hl-node"));
-  setWhy(`<p class="muted">The graph remembers every scan. Comparing <b>${esc(d.since)}</b> &rarr; <b>${esc(d.until)}</b>:</p>
-    <ol class="plain">
-      <li>Attack paths to ${esc(title(JEWEL))}: <b>${d.paths.since} &rarr; ${d.paths.until}</b>.</li>
-      <li>Added: ${d.added.map((f) => `<b>${esc(f.title)}</b>`).join(", ") || "none"}.</li>
-      <li>Removed: ${d.removed.map((f) => `<b>${esc(f.title)}</b>`).join(", ") || "none"}.</li>
-      <li>Regressed: ${d.regressed.map((r) => `<b>${esc(r.asset_name)}</b> (+${r.new_paths} paths via ${esc(title(r.finding_id))})`).join(", ") || "none"}.</li>
-    </ol>`, d.headline);
-  scrollToWhy();
-}
-
-$("trace-btn").addEventListener("click", traceAll);
-$("choke-btn").addEventListener("click", showChokePoint);
-$("changes-btn").addEventListener("click", showChanges);
-$("agent-btn").addEventListener("click", askAgent);
-$("reset-btn").addEventListener("click", resetAll);
-$("taxonomy-toggle").addEventListener("change", async (e) => { await loadGraph(e.target.checked); resetAll(); });
-
-(async function init() {
-  setWhy(DEFAULT_WHY);
-  try {
-    const [, p, c] = await Promise.all([loadGraph(false), getJSON(`/api/paths?crown_jewel=${JEWEL}`), getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`)]);
-    paths = (p.paths || []).slice().sort((a, b) => b.score - a.score);
-    chokes = c.choke_points || [];
-    renderHero(); renderPaths(); renderChokes();
-  } catch (e) {
-    $("loading").innerHTML = `Couldn't reach the graph just now.<br><span class="muted">Reload in a moment &mdash; the free server may still be waking up.</span>`;
-  }
-})();
 </script>
 </body>
 </html>

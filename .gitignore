@@ -21,3 +21,4 @@ agent/last_answer.json
 
 # claude code personal overrides
 **/.claude/settings.local.json
+CrownPath attack-path triage/

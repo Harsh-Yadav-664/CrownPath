@@ -3,6 +3,14 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 (late) — premium UI integrated (design v3 -> ui/static/index.html)
+`ui/static/index.html` is now the v3 design, wired to the live API (no hardcoded data); `ui/static/support.js` is the
+design runtime (loads React + Babel from unpkg at page load, no build step). `ui/app.py`, schema, Cypher and tools unchanged.
+Endpoints used: /api/graph, /api/scope, /api/paths, /api/chokepoints, /api/whatif (Simulate fix), /api/changes, /api/agent.
+Notes: the brief's `/api/whatchanged` and `/api/simulate-fix` are `/api/changes` and `/api/whatif`. Score line shows
+"confidences x crown-jewel value / hops". Design folder `CrownPath attack-path triage/` is gitignored. Agent replies state
+their source (live LLM / computed from graph / recorded sample). The jewel is the first in /api/scope.
+
 ## 2026-10-18 (21:00 IST) — scope API, larger estate, demo script (data/backend/docs only)
 `ui/static/index.html`, `lib/schema.py`, the tool signatures and the path/choke-point Cypher are
 untouched. Full suite 39/39 on `crownpath_test`.
@@ -46,9 +54,9 @@ FLAG (not changed, because it writes to the live graph): **the live `crownpath` 
   added). `docs/deploy.md` says the deploy seed is `python -m lib.memory --demo`; it looks like the graph was
   later reloaded with `seed_taxonomy --all`. A human should run `python -m lib.memory --demo` against
   the live instance (it reloads the same frozen demo plus both scans), then check `/api/changes`.
-STILL BLOCKED (from the 20:15 entry): the deploy fork `harshiit-rana/CrownPath` is still at `6a0da50`,
-  now 6 commits behind main, so the UI redesign, `/api/scope` and `/api/target` are not live yet.
-  Fix: **Sync fork** on GitHub, then Render deploys (or use Manual Deploy).
+DEPLOYMENT (corrected 2026-10-18): the live site deploys from **Harsh-Yadav-664/CrownPath `main`** via the owner's
+  own Render account; a push to main triggers the deploy. The fork `harshiit-rana/CrownPath` is NOT used. Ignore the
+  older "deploy fork / Sync fork" notes below.
 
 ## 2026-10-18 (20:15 IST) — UI clarity redesign: lead with the answer (`737e098`)
 DONE (presentation only; `ui/static/index.html` is the only file changed. Schema, tool
@@ -79,13 +87,7 @@ signatures, Cypher and `ui/app.py` are untouched):
     `tests/test_ui_explain.py` + `tests/test_ui_agent.py` pass (6/6).
   - **Note:** the brief referenced `docs/TEAM_HANDOFF.md` §1 for the intro text. That file does not
     exist in upstream, the fork, or history, so the intro paraphrases README "What it does".
-BLOCKED: **the live site has not picked up the change.** Render appears to deploy from the fork
-  `harshiit-rana/CrownPath`, not upstream. The fork's `main` is still `6a0da50` (exactly what the
-  live URL serves), 1 commit behind upstream with no divergence, and no deploy appeared 15+ min
-  after the push. The upstream account has read-only access to the fork, so it can't be synced from
-  here. **Fix (teammate, 1 minute):** on github.com/harshiit-rana/CrownPath click **Sync fork ->
-  Update branch** (fast-forward to `737e098`). Render auto-deploys from there, or use **Manual
-  Deploy -> Deploy latest commit** in the Render dashboard. Longer term: point the Render service at
+(Superseded: the "deploys from the fork" diagnosis here was wrong; Render deploys from upstream `main`.)
   upstream `Harsh-Yadav-664/CrownPath` so pushes to main deploy directly.
   After it deploys, open https://crownpath-st2u.onrender.com/ and click Show me the fix -> Simulate
   fix, then Trace / What changed? / Ask the agent / Reset (headless walkthrough script used for
