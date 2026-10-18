@@ -4,212 +4,433 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CrownPath</title>
+<meta name="description" content="Fix one finding, sever 4 of 6 attack paths to the customer database. Attack-path triage on FalkorDB." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffcf5c'/%3E%3Cpath d='M7 22l2-11 5 5 2-7 2 7 5-5 2 11z' fill='%233a2a00'/%3E%3C/svg%3E" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 <style>
   :root {
-    --bg: #0f1117; --panel: #171a24; --panel2: #1e2230; --text: #e6e8ef; --muted: #8b90a3;
-    --accent: #ff5d73; --jewel: #ffd166; --edge: #2f3447; --ok: #6bd49a;
+    --bg: #0c0f16; --surface: #131722; --surface-2: #191e2b; --border: #252b3b; --border-2: #323a4f;
+    --text: #e9ebf2; --text-2: #b2b8ca; --muted: #8389a0;
+    --accent: #ff5d73; --accent-ink: #2b0a11; --accent-soft: #3a1820;
+    --jewel: #ffcf5c; --ok: #5fd39a; --ok-soft: #14301f; --warn-soft: #3d3214;
+    --radius: 12px;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  html, body { height: 100%; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, Segoe UI, Roboto, sans-serif; display: flex; flex-direction: column; }
-  header { padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--edge);
-    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-  h1 { margin: 0; font-size: 18px; }
-  .tagline { color: var(--muted); font-size: 12.5px; }
-  .controls { display: flex; gap: 8px; padding: 8px 18px; background: var(--panel);
-    border-bottom: 1px solid var(--edge); flex-wrap: wrap; align-items: center; }
-  button { background: var(--accent); color: #1a0d10; border: none; padding: 7px 12px;
-    border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
-  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--edge); }
-  button.small { padding: 3px 8px; font-size: 12px; }
-  label.toggle { color: var(--muted); font-size: 12.5px; margin-left: auto; cursor: pointer; }
-  #headline { width: 100%; font-size: 14px; color: var(--jewel); font-weight: 600; min-height: 20px; }
-  main { flex: 1; display: grid; grid-template-columns: 1fr 440px; min-height: 0; }
-  #cy-wrap { position: relative; min-height: 360px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.55;
+    font-family: Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  b, strong { font-weight: 650; }
+  code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+
+  /* header */
+  header { border-bottom: 1px solid var(--border); background: var(--surface); }
+  header .wrap { display: flex; align-items: center; gap: 16px; min-height: 58px; flex-wrap: wrap; }
+  .brand { font-weight: 750; font-size: 18px; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+  .brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--jewel);
+    display: grid; place-items: center; color: #3a2a00; font-size: 13px; }
+  .brand-sub { color: var(--muted); font-size: 14px; }
+  header .spacer { flex: 1; }
+  header a { color: var(--text-2); font-size: 14px; text-decoration: none; }
+  header a:hover { color: var(--text); }
+
+  /* buttons */
+  .btn { font: inherit; font-size: 15px; font-weight: 600; border-radius: 9px; padding: 10px 16px; cursor: pointer;
+    border: 1px solid var(--border-2); background: var(--surface-2); color: var(--text); line-height: 1.2;
+    transition: background .15s, border-color .15s, transform .05s; }
+  .btn:hover { border-color: #46506a; background: #1f2534; }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 2px solid var(--jewel); outline-offset: 2px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { background: #ff7487; border-color: #ff7487; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn.ghost:hover { color: var(--text); background: var(--surface-2); }
+  .btn.lg { font-size: 17px; padding: 13px 22px; border-radius: 10px; }
+  .btn.sm { font-size: 14px; padding: 7px 12px; border-radius: 8px; }
+
+  /* intro + hero */
+  .hero { padding: 40px 0 28px; }
+  details.intro { margin-bottom: 26px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+  details.intro summary { cursor: pointer; padding: 12px 16px; color: var(--text-2); font-size: 15px; list-style: none;
+    display: flex; align-items: center; gap: 8px; }
+  details.intro summary::-webkit-details-marker { display: none; }
+  details.intro summary::before { content: "+"; display: inline-grid; place-items: center; width: 20px; height: 20px;
+    border-radius: 50%; border: 1px solid var(--border-2); font-size: 14px; color: var(--text-2); }
+  details.intro[open] summary::before { content: "\2212"; }
+  details.intro .body { padding: 0 18px 16px 44px; color: var(--text-2); max-width: 860px; }
+  details.intro .body p { margin: 0 0 10px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--jewel); font-weight: 650; margin: 0 0 12px; }
+  .hero h1 { font-size: clamp(30px, 4.2vw, 50px); line-height: 1.12; letter-spacing: -.025em; margin: 0 0 16px; max-width: 980px; font-weight: 750; }
+  .hero h1 .soft { color: var(--text-2); }
+  .lede { font-size: clamp(18px, 1.9vw, 23px); line-height: 1.45; color: var(--text-2); margin: 0 0 26px; max-width: 900px; }
+  .lede b { color: var(--text); }
+  .lede .hot { color: var(--accent); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cred { margin: 18px 0 0; color: var(--muted); font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+  .cred .tick { color: var(--ok); }
+
+  /* the answer card */
+  .answer { margin-top: 26px; border: 1px solid #5a2732; background: linear-gradient(180deg, #1c1219 0%, var(--surface) 70%);
+    border-radius: 16px; padding: 22px 24px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; }
+  .answer .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: 13px; color: var(--accent); font-weight: 700; }
+  .answer .title { font-size: clamp(22px, 2.4vw, 30px); font-weight: 750; letter-spacing: -.015em; margin: 6px 0 10px; line-height: 1.2; }
+  .answer .stat { font-size: 17px; color: var(--text-2); }
+  .answer .stat .big { font-size: 34px; font-weight: 800; color: var(--accent); letter-spacing: -.02em; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .answer .bar { height: 10px; margin: 14px 0 4px; }
+  .answer .vs { margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); font-size: 15px; }
+  .answer .fixbox { background: var(--ok-soft); border: 1px solid #23523a; border-radius: 10px; padding: 12px 14px; font-size: 15px; }
+  .answer .fixbox .lbl { color: var(--ok); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; display: block; margin-bottom: 4px; }
+  .answer .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .sim { margin-top: 14px; font-size: 15px; color: var(--text-2); }
+  .sim b { color: var(--text); }
+  .sim .ok { color: var(--ok); }
+
+  /* sections */
+  section.block { padding: 18px 0 8px; }
+  .section-title { font-size: 20px; margin: 0 0 4px; letter-spacing: -.01em; font-weight: 700; }
+  .section-sub { color: var(--muted); margin: 0 0 14px; font-size: 15px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+
+  .ev-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(360px, 1fr); gap: 18px; align-items: start; }
+  #h-kills { white-space: nowrap; }
+  .graph-card { padding: 14px 14px 10px; position: sticky; top: 14px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--text-2); padding: 2px 4px 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .sw { width: 14px; height: 14px; display: inline-block; flex: none; }
+  .sw.endpoint { background: #8ad6c2; border-radius: 50%; }
+  .sw.finding { background: #ff8fa3; transform: rotate(45deg) scale(.85); }
+  .sw.identity { background: #c8a2ff; clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%); }
+  .sw.asset { background: #5aa9e6; border-radius: 3px; }
+  .sw.jewel { background: var(--jewel); border-radius: 3px; outline: 2px solid #fff; outline-offset: -2px; }
+  .sw.path { width: 22px; height: 3px; background: var(--accent); border-radius: 2px; }
+  .howto { margin: 0 4px 10px; font-size: 14.5px; color: var(--muted); }
+  .howto b { color: var(--text-2); }
+  #cy-wrap { position: relative; height: clamp(440px, calc(100vh - 230px), 660px); border-radius: 9px; background: #0f131c; border: 1px solid var(--border); overflow: hidden; }
   #cy { position: absolute; inset: 0; }
-  #legend { position: absolute; left: 10px; bottom: 10px; background: #171a24cc; border: 1px solid var(--edge);
-    border-radius: 6px; padding: 6px 10px; font-size: 11.5px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
-  #legend i { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: middle; }
-  aside { background: var(--panel); border-left: 1px solid var(--edge); overflow-y: auto; padding: 12px 14px 40px; }
-  aside h2 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
-  aside h2:first-child { margin-top: 0; }
-  .card { background: var(--panel2); border: 1px solid var(--edge); border-radius: 8px; padding: 9px 11px;
-    margin-bottom: 8px; font-size: 13px; }
-  .card.sel { border-color: var(--accent); }
-  .card.severed { opacity: .45; }
-  .card.severed .sum { text-decoration: line-through; }
-  .card .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; cursor: pointer; }
-  .score { color: var(--jewel); font-weight: 700; font-variant-numeric: tabular-nums; }
-  .sum { color: var(--text); margin-top: 4px; line-height: 1.4; }
-  .muted { color: var(--muted); }
-  .steps { margin: 8px 0 0; padding: 0; list-style: none; }
-  .steps li { padding: 5px 0 5px 12px; border-left: 2px solid var(--edge); font-size: 12.5px; line-height: 1.4; }
+  .canvas-tag { position: absolute; pointer-events: none; font-size: 14px; font-weight: 650; white-space: nowrap;
+    color: #bff0e2; background: #0f131ce6; border: 1px solid #2f5c50; border-radius: 999px; padding: 3px 12px; transform: translateX(-50%); }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 15px; text-align: center; padding: 20px; }
+  .graph-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; padding: 10px 4px 2px; }
+  label.toggle { color: var(--muted); font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+  .hint { color: var(--muted); font-size: 14px; }
+
+  /* why panel (the star) */
+  .why-card { padding: 20px 22px 22px; border-color: #3a3220; box-shadow: 0 0 0 1px #2a2414 inset; }
+  .why-card h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .cvss-note { margin: 0 0 14px; padding: 8px 12px; border-radius: 8px; background: var(--warn-soft); color: #f2d98c; font-size: 14px; border: 1px solid #5a4a1c; }
+  #headline { font-size: 17px; font-weight: 650; color: var(--jewel); margin: 0 0 12px; line-height: 1.4; }
+  #headline:empty { display: none; }
+  #why { font-size: 15.5px; color: var(--text-2); }
+  #why h3, .why-card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 20px 0 8px; font-weight: 700; }
+  #why .empty { color: var(--muted); }
+  ol.plain { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+  ol.plain li { counter-increment: s; position: relative; padding: 0 0 12px 40px; color: var(--text-2); }
+  ol.plain li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text); font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+  ol.plain li b { color: var(--text); }
+  .evidence-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .evidence-box .t { font-weight: 700; color: var(--text); font-size: 16px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 13px; background: #262c3d; color: var(--text-2); border: 1px solid transparent; }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); border-color: #23523a; }
+  .chip.no { background: #33282b; color: #e7a9b3; }
+  .chip.cvss { background: transparent; border-color: var(--border-2); color: var(--muted); }
+  .kv { font-size: 14.5px; color: var(--text-2); margin-top: 6px; }
+  .kv .k { color: var(--muted); }
+  .fix { margin-top: 10px; padding: 9px 12px; background: var(--ok-soft); border: 1px solid #23523a; border-radius: 8px; font-size: 14.5px; color: #cdeedd; }
+  .steps { margin: 6px 0 0; padding: 0; list-style: none; }
+  .steps li { padding: 8px 0 8px 14px; border-left: 2px solid var(--border-2); font-size: 15px; line-height: 1.45; color: var(--text-2); }
+  .steps li b { color: var(--text); }
   .steps li.find { border-left-color: var(--accent); }
-  .edge { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
-  .formula { margin-top: 8px; font-size: 12px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
-  .bar { height: 8px; background: #2a2f42; border-radius: 4px; overflow: hidden; margin: 6px 0; }
-  .bar > div { height: 100%; background: var(--accent); }
-  .chip { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; background: #2a2f42; color: var(--muted); }
-  .chip.ok { background: #1c3a2b; color: var(--ok); }
-  .banner { display: inline-block; margin-bottom: 6px; padding: 2px 8px; border-radius: 4px;
-    background: #5c4a14; color: #ffd166; font-size: 12px; }
-  pre.answer { margin: 0; white-space: pre-wrap; font-size: 12px; line-height: 1.45; font-family: inherit; }
-  .fix { margin-top: 6px; padding: 6px 8px; background: #14261d; border-radius: 6px; font-size: 12px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { max-height: 60vh; border-left: 0; border-top: 1px solid var(--edge); } }
+  .steps li.goal { border-left-color: var(--jewel); }
+  .edge { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .formula { margin-top: 10px; padding: 9px 12px; background: #0f131c; border: 1px solid var(--border); border-radius: 8px;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13.5px; color: var(--text-2); overflow-x: auto; }
+  .formula b { color: var(--jewel); }
+  .arith { margin: 0; padding: 0; list-style: none; }
+  .arith li { padding: 8px 0; border-top: 1px solid var(--border); font-size: 14.5px; }
+  .arith li:first-child { border-top: 0; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 10px; }
+  .banner { display: inline-block; margin-bottom: 8px; padding: 3px 10px; border-radius: 6px; background: var(--warn-soft); color: #f2d98c; font-size: 13.5px; }
+  pre.answer-text { margin: 0; white-space: pre-wrap; font-size: 14px; line-height: 1.55; font-family: inherit; color: var(--text-2); }
+
+  /* lists */
+  .lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  .item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .item.click { cursor: pointer; transition: border-color .15s; }
+  .item.click:hover { border-color: var(--border-2); }
+  .item.sel { border-color: var(--accent); }
+  .item.severed { opacity: .5; }
+  .item.severed .sum { text-decoration: line-through; }
+  .item .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .item .name { font-weight: 650; }
+  .score { color: var(--jewel); font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sum { color: var(--text-2); margin-top: 4px; font-size: 14.5px; }
+  .bar { height: 8px; background: #252b3b; border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
+  .bar > div { height: 100%; background: var(--accent); border-radius: 99px; }
+  .muted { color: var(--muted); }
+  .cut { color: var(--accent); font-weight: 650; font-size: 13.5px; }
+
+  footer { border-top: 1px solid var(--border); margin-top: 30px; padding: 20px 0 34px; color: var(--muted); font-size: 14px; }
+  footer p { margin: 0 0 6px; max-width: 980px; }
+  footer a { color: var(--text-2); }
+
+  @media (max-width: 1020px) {
+    .ev-grid, .lists, .answer { grid-template-columns: 1fr; }
+    .graph-card { position: static; }
+    #cy-wrap { height: 480px; }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 16px; }
+    .hero { padding-top: 26px; }
+    .brand-sub { display: none; }
+    .btn.lg { width: 100%; }
+    #cy-wrap { height: 400px; }
+    .why-card { padding: 16px; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>CrownPath</h1>
-  <div class="tagline">Risk is a path to a crown jewel, not a CVSS score. Every answer is a traced path through the FalkorDB graph.</div>
+  <div class="wrap">
+    <div class="brand"><span class="mark">&#9819;</span>CrownPath</div>
+    <div class="brand-sub">Attack-path triage on FalkorDB</div>
+    <div class="spacer"></div>
+    <a href="https://github.com/Harsh-Yadav-664/CrownPath" target="_blank" rel="noopener">Source &amp; queries &rarr;</a>
+  </div>
 </header>
-<div class="controls">
-  <button id="trace-btn">Trace attack paths</button>
-  <button id="choke-btn" class="secondary">Show choke point</button>
-  <button id="changes-btn" class="secondary">What changed?</button>
-  <button id="agent-btn" class="secondary">Ask the agent</button>
-  <button id="reset-btn" class="secondary">Reset view</button>
-  <label class="toggle"><input type="checkbox" id="taxonomy-toggle"> show technique taxonomy (77 nodes)</label>
-  <div id="headline"></div>
-</div>
+
 <main>
-  <div id="cy-wrap">
-    <div id="cy"></div>
-    <div id="legend">
-      <span><i style="background:#8ad6c2;border-radius:50%"></i>endpoint</span>
-      <span><i style="background:#ff8fa3;transform:rotate(45deg)"></i>finding</span>
-      <span><i style="background:#c8a2ff"></i>identity</span>
-      <span><i style="background:#5aa9e6"></i>asset</span>
-      <span><i style="background:#ffd166"></i>crown jewel</span>
+<section class="hero">
+  <div class="wrap">
+    <details class="intro">
+      <summary>What is this? <span class="muted">&mdash; the 30-second version</span></summary>
+      <div class="body">
+        <p>Security scanners hand you a list of findings sorted by severity (CVSS). Attackers don't use one finding at a time &mdash; they <b>chain</b> them. An anonymous visitor uses a medium XSS to steal a user session, that session reaches an internal API, and an IDOR on that API reads the customer database. Each step looks moderate on its own; the chain is critical, and a severity sort can't see it.</p>
+        <p>CrownPath puts every asset, endpoint, finding and identity into a <b>FalkorDB graph</b>, asks the graph for every route from the internet to your most valuable asset (the <b>crown jewel</b>), and finds the <b>one finding most of those routes pass through</b>. Fix that first.</p>
+        <p class="muted">The graph, the attack paths and the choke point on this page are computed live by Cypher queries in FalkorDB. Only confirmed findings can be part of a path.</p>
+      </div>
+    </details>
+
+    <p class="eyebrow">What should we fix first, and why?</p>
+    <h1 id="hero-title"><span id="h-findings">8 findings.</span> <span class="soft" id="h-claim">Sort them by CVSS and you fix the wrong thing.</span></h1>
+    <p class="lede">CrownPath found <b id="h-paths">6 attack paths</b> to the <b id="h-jewel">Customer database</b> &mdash; and <b class="hot">ONE fix</b> kills <b id="h-kills">4 of them</b>.</p>
+
+    <div class="actions">
+      <button id="choke-btn" class="btn primary lg">Show me the fix</button>
+      <button id="trace-btn" class="btn">Trace all 6 attack paths</button>
+      <button id="changes-btn" class="btn ghost">What changed since the last scan?</button>
+      <button id="agent-btn" class="btn ghost">Ask the agent</button>
+      <button id="reset-btn" class="btn ghost">Reset</button>
+    </div>
+    <p class="cred"><span class="tick">&#10003;</span><span>Validated on a synthetic estate and on findings captured from a live, self-hosted vulnerable app (<code>data/findings.captured.json</code>).</span></p>
+
+    <div id="answer" class="answer" hidden></div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2 class="section-title">The evidence</h2>
+    <p class="section-sub">Every number above comes from this graph. Click any node for its details.</p>
+    <div class="ev-grid">
+      <div class="card graph-card">
+        <div class="legend" aria-label="Legend">
+          <span><i class="sw endpoint"></i>endpoint</span>
+          <span><i class="sw finding"></i>finding</span>
+          <span><i class="sw identity"></i>identity (session)</span>
+          <span><i class="sw asset"></i>asset</span>
+          <span><i class="sw jewel"></i>crown jewel</span>
+          <span><i class="sw path"></i>attack path</span>
+        </div>
+        <p class="howto"><b>How to read this:</b> an attacker starts at the top with no login, follows the arrows through findings and stolen sessions, and is trying to reach the gold crown jewel at the bottom.</p>
+        <div id="cy-wrap">
+          <div id="cy"></div>
+          <div id="tag-entry" class="canvas-tag" hidden>&darr; Anonymous visitor starts here</div>
+          <div id="loading">Loading the graph from FalkorDB&hellip;<br><span class="muted">(the free server can take up to a minute to wake)</span></div>
+        </div>
+        <div class="graph-foot">
+          <span class="hint">Scroll to zoom &middot; drag to pan</span>
+          <label class="toggle"><input type="checkbox" id="taxonomy-toggle"> Show the 77-technique taxonomy</label>
+        </div>
+      </div>
+
+      <aside class="card why-card" id="why-card">
+        <h2>Why this answer</h2>
+        <p class="cvss-note">CVSS shown for context only &mdash; CrownPath ranks by reachability, not severity.</p>
+        <div id="headline"></div>
+        <div id="why"></div>
+        <div id="detail-section" hidden>
+          <h3>Selected node</h3>
+          <div id="detail" class="evidence-box"></div>
+        </div>
+      </aside>
     </div>
   </div>
-  <aside>
-    <h2>Why this answer</h2>
-    <div id="why" class="card muted">Click <b>Show choke point</b>, or pick an attack path below to see exactly why it matters.</div>
+</section>
 
-    <h2>Choke points &mdash; which single fix breaks the most paths</h2>
-    <div id="chokes"></div>
-
-    <h2>Attack paths to the crown jewel (ranked by likelihood &times; impact)</h2>
-    <div id="paths"></div>
-
-    <div id="agent-section" hidden>
-      <h2>Agent answer</h2>
-      <div id="agent-banner" class="banner" hidden></div>
-      <pre id="agent-answer" class="answer"></pre>
+<section class="block">
+  <div class="wrap lists">
+    <div>
+      <h2 class="section-title">Which single fix breaks the most paths</h2>
+      <p class="section-sub">Each finding, by how many attack paths it sits on.</p>
+      <div id="chokes"></div>
     </div>
-
-    <div id="changes-section" hidden>
-      <h2>What changed between scans</h2>
-      <div id="changes" class="card"></div>
+    <div>
+      <h2 class="section-title">Every attack path, ranked</h2>
+      <p class="section-sub">Ranked by likelihood &times; impact. Click one to trace it.</p>
+      <div id="paths"></div>
     </div>
-
-    <div id="detail-section" hidden>
-      <h2>Selected node</h2>
-      <div id="detail" class="card"></div>
-    </div>
-  </aside>
+  </div>
+</section>
 </main>
+
+<footer>
+  <div class="wrap">
+    <p>CrownPath is new work for Graph Hacks. Its FalkorDB graph layer, attack-path queries, agent, and explainability output were built during the event. It reuses, from our own prior open-source tool swiftPentest, the vulnerability taxonomy and the findings-data schema. Built with Claude Code.</p>
+    <p>All demo data is synthetic or captured from our own loopback test app. <a href="https://github.com/Harsh-Yadav-664/CrownPath" target="_blank" rel="noopener">GitHub</a></p>
+  </div>
+</footer>
 
 <script>
 const API = "";
 const JEWEL = "asset:db";
-const COLORS = { Asset: "#5aa9e6", Endpoint: "#8ad6c2", Finding: "#ff8fa3", Identity: "#c8a2ff", Technique: "#555b70" };
+const COLORS = { Asset: "#5aa9e6", Endpoint: "#8ad6c2", Finding: "#ff8fa3", Identity: "#c8a2ff", Technique: "#59607a" };
 const EDGE_PHRASE = {
-  EXPOSES: "serves", HAS_FINDING: "has the finding", GRANTS: "grants a session as", LEADS_TO: "leads to",
-  CAN_ACCESS: "can reach", CONNECTS_TO: "has network access to",
+  EXPOSES: "serves", HAS_FINDING: "has finding", GRANTS: "grants session", LEADS_TO: "leads to",
+  CAN_ACCESS: "can reach", CONNECTS_TO: "network access", INSTANCE_OF: "instance of", CHAINS_TO: "chains to",
 };
+const DEFAULT_WHY = `<p class="empty">Press <b>Show me the fix</b> for the full reasoning, or click any attack path below to see it step by step.</p>`;
 
-let cy, nodeData = {}, paths = [], chokes = [], selectedPath = null, headlineEl = document.getElementById("headline");
+let cy, nodeData = {}, paths = [], chokes = [], selectedPath = null, severedKeys = new Set(), taxonomyMode = false;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const nodeSteps = (p) => p.steps.filter((s) => s.kind === "node");
+const keyOf = (p) => nodeSteps(p).map((s) => s.id).join(">");
 const props = (id) => (nodeData[id] && nodeData[id].props) || {};
 const title = (id) => (nodeData[id] ? nodeData[id].label : id);
+const findings = () => Object.values(nodeData).filter((d) => d.type === "Finding");
+const entries = () => Object.values(nodeData).filter((d) => d.type === "Endpoint" && d.props.auth_required === false);
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
-async function getJSON(url) { const r = await fetch(API + url); return r.json(); }
+async function getJSON(url) {
+  const r = await fetch(API + url);
+  if (!r.ok) throw new Error(`${url} -> HTTP ${r.status}`);
+  return r.json();
+}
+
+/* ---------- graph ---------- */
+function canvasLabel(d) {
+  if (d.id === JEWEL) return `THE GOAL: ${d.label}`;
+  if (d.type === "Identity") return d.props.role === "anonymous" ? "anonymous" : `${d.label} session`;
+  if (d.type === "Finding") {
+    const short = String(d.props.title || d.label).split(" on ")[0];
+    return d.props.status === "confirmed" ? short : `${short} (not confirmed)`;
+  }
+  return d.label;
+}
+
+// Labels are sized in graph units; scale them up when the graph is fitted below 1x so
+// they never render smaller than their nominal pixel size.
+let labelScale = 1;
+const fs = (px) => () => px * labelScale;
 
 function style() {
   return [
-    { selector: "node", style: { "background-color": (n) => COLORS[n.data("type")] || "#888", label: "data(label)",
-        color: "#e6e8ef", "font-size": 11, "text-wrap": "wrap", "text-max-width": 110, "text-valign": "bottom",
-        "text-margin-y": 5, width: 30, height: 30, "text-outline-color": "#0f1117", "text-outline-width": 2 } },
+    { selector: "node", style: { "background-color": (n) => COLORS[n.data("type")] || "#888", label: "data(display)",
+        color: "#dfe3ee", "font-size": fs(13), "font-family": "Inter, Segoe UI, Roboto, sans-serif", "text-wrap": "wrap",
+        "text-max-width": () => 120 * labelScale, "text-valign": "bottom", "text-margin-y": 6, width: 30, height: 30,
+        "text-outline-color": "#0f131c", "text-outline-width": 3 } },
     { selector: 'node[type = "Finding"]', style: { shape: "diamond", width: 36, height: 36 } },
-    { selector: 'node[type = "Identity"]', style: { shape: "hexagon" } },
-    { selector: 'node[type = "Asset"]', style: { shape: "round-rectangle", width: 42, height: 34 } },
-    { selector: 'node[type = "Technique"]', style: { width: 14, height: 14, "font-size": 8, opacity: .7 } },
-    { selector: `node[id = "${JEWEL}"]`, style: { "background-color": "#ffd166", width: 56, height: 46, "border-width": 3, "border-color": "#fff" } },
-    { selector: "edge", style: { width: 1.5, "line-color": "#3a3f52", "target-arrow-color": "#3a3f52", "target-arrow-shape": "triangle",
-        "curve-style": "bezier", label: "data(label)", "font-size": 8, color: "#6f7590", "text-rotation": "autorotate",
-        "text-outline-color": "#0f1117", "text-outline-width": 2 } },
-    { selector: ".hl", style: { "line-color": "#ff5d73", "target-arrow-color": "#ff5d73", width: 3.5, color: "#ffb3be" } },
+    { selector: 'node[type = "Identity"]', style: { shape: "hexagon", width: 32, height: 30 } },
+    { selector: 'node[type = "Asset"]', style: { shape: "round-rectangle", width: 44, height: 34 } },
+    { selector: 'node[type = "Technique"]', style: { width: 16, height: 16, "font-size": fs(12), opacity: .75 } },
+    { selector: "node[?entry]", style: { "border-width": 3, "border-color": "#bff0e2" } },
+    { selector: `node[id = "${JEWEL}"]`, style: { "background-color": "#ffcf5c", width: 64, height: 50, "border-width": 3,
+        "border-color": "#fff", "font-size": fs(15), "font-weight": 700, color: "#ffcf5c", "text-margin-y": 8 } },
+    { selector: "edge", style: { width: 1.5, "line-color": "#363d52", "target-arrow-color": "#363d52",
+        "target-arrow-shape": "triangle", "arrow-scale": 1.1, "curve-style": "bezier", label: "" } },
+    { selector: "edge.hl", style: { "line-color": "#ff5d73", "target-arrow-color": "#ff5d73", width: 3.5 } },
+    { selector: "edge.lbl", style: { label: "data(phrase)", "font-size": fs(12), color: "#ffc2cb", "text-rotation": "autorotate",
+        "text-outline-color": "#0f131c", "text-outline-width": 3 } },
     { selector: ".hl-node", style: { "border-width": 3, "border-color": "#ff5d73" } },
-    { selector: ".dimmed", style: { opacity: 0.12 } },
-    { selector: ".choke", style: { "background-color": "#ff5d73", width: 46, height: 46, "border-width": 3, "border-color": "#fff" } },
-    { selector: ".fixed", style: { "background-color": "#6bd49a", "border-width": 3, "border-color": "#fff" } },
+    { selector: ".dimmed", style: { opacity: 0.13 } },
+    { selector: ".choke", style: { "background-color": "#ff5d73", width: 52, height: 52, "border-width": 4, "border-color": "#fff",
+        "font-size": fs(15), "font-weight": 700, color: "#ffd1d8" } },
+    { selector: ".fixed", style: { "background-color": "#5fd39a", width: 48, height: 48, "border-width": 4, "border-color": "#fff",
+        "font-size": fs(15), "font-weight": 700, color: "#bff0d6" } },
     { selector: ":selected", style: { "border-width": 3, "border-color": "#fff" } },
   ];
 }
 
+function fitAndScale(padding) {
+  cy.fit(undefined, padding);
+  labelScale = Math.min(1.6, Math.max(1, 1 / cy.zoom()));
+  cy.style().update();
+}
+
 function layout() {
-  const roots = cy.nodes().filter((n) => (props(n.id()).auth_required === false));
-  cy.layout({ name: "breadthfirst", directed: true, roots, spacingFactor: 1.35, padding: 30, animate: false }).run();
-  cy.fit(undefined, 30);
+  const es = cy.nodes().filter((n) => n.data("entry"));
+  cy.layout({ name: "breadthfirst", directed: true, roots: es, spacingFactor: 1.1, padding: 40, animate: false }).run();
+  // Nodes no entry point can reach (the Storefront that serves the entries, the unused
+  // anonymous identity) go in a row above the entries, leaving a gap for the "starts here" tag.
+  if (es.length) {
+    const reach = es.union(es.successors()).nodes();
+    const entryY = es[0].position("y");
+    const minX = Math.min(...es.map((n) => n.position("x")));
+    cy.nodes().not(reach).forEach((n, i) => {
+      const kids = n.outgoers("node").filter((k) => k.data("entry"));
+      const x = kids.length ? kids.map((k) => k.position("x")).reduce((a, b) => a + b, 0) / kids.length : minX - 40 + i * 10;
+      n.position({ x, y: entryY - 130 });
+    });
+  }
+  // The crown jewel gets its own bottom row, centred under whatever reaches it, so no
+  // edge into it runs through a neighbouring node.
+  const jewel = cy.getElementById(JEWEL);
+  if (jewel.nonempty()) {
+    const others = cy.nodes().not(jewel);
+    const preds = jewel.incomers("node");
+    const xs = (preds.nonempty() ? preds : others).map((n) => n.position("x"));
+    jewel.position({ x: xs.reduce((a, b) => a + b, 0) / xs.length, y: Math.max(...others.map((n) => n.position("y"))) + 120 });
+  }
+  fitAndScale(40);
+}
+
+let tagFrame = 0;
+function placeTags() {
+  cancelAnimationFrame(tagFrame);
+  tagFrame = requestAnimationFrame(() => {
+    const tag = $("tag-entry");
+    const es = cy ? cy.nodes().filter((n) => n.data("entry")) : null;
+    if (!cy || taxonomyMode || !es || !es.length) { tag.hidden = true; return; }
+    const bb = es.renderedBoundingBox({ includeLabels: false });
+    tag.style.left = `${(bb.x1 + bb.x2) / 2}px`;
+    tag.style.top = `${Math.max(6, bb.y1 - 36)}px`;
+    tag.hidden = false;
+  });
 }
 
 async function loadGraph(taxonomy) {
+  taxonomyMode = taxonomy;
   const { nodes, edges } = await getJSON(`/api/graph?taxonomy=${taxonomy ? "true" : "false"}`);
   nodeData = {};
-  nodes.forEach((n) => (nodeData[n.data.id] = n.data));
+  nodes.forEach((n) => {
+    const d = n.data;
+    nodeData[d.id] = d;
+    d.display = canvasLabel(d);
+    d.entry = d.type === "Endpoint" && d.props.auth_required === false;
+  });
+  edges.forEach((e) => (e.data.phrase = EDGE_PHRASE[e.data.label] || e.data.label.toLowerCase()));
   if (cy) cy.destroy();
-  cy = cytoscape({ container: $("cy"), elements: { nodes, edges }, style: style(), wheelSensitivity: 0.25 });
-  if (taxonomy) cy.layout({ name: "cose", animate: false }).run(); else layout();
+  cy = cytoscape({ container: $("cy"), elements: { nodes, edges }, style: style(), wheelSensitivity: 0.25, minZoom: 0.2, maxZoom: 3 });
+  if (taxonomy) { cy.layout({ name: "cose", animate: false }).run(); fitAndScale(30); } else layout();
   cy.on("tap", "node", (e) => showNode(e.target.id()));
   cy.on("tap", (e) => { if (e.target === cy) hideNode(); });
-}
-
-/* ---------- explanation helpers (all numbers come from the graph) ---------- */
-function pathFindings(p) { return p.finding_ids.map((id) => ({ id, ...props(id) })); }
-
-function formula(p) {
-  const fs = pathFindings(p);
-  const jewel = props(JEWEL).value ?? "?";
-  const conf = fs.map((f) => Number(f.confidence).toFixed(2)).join(" &times; ") || "1";
-  return `score = ${conf} &times; ${jewel} (jewel value) &divide; ${p.length} hops = <b>${p.score.toFixed(2)}</b>`;
-}
-
-function summary(p) { return nodeSteps(p).map((s) => esc(title(s.id))).join(" &rarr; "); }
-
-function narrative(p) {
-  const steps = p.steps; const out = [];
-  for (let i = 0; i < steps.length; i += 2) {
-    const n = steps[i], d = props(n.id), edge = steps[i + 1], next = steps[i + 2];
-    let line = "";
-    if (i === 0) line = `An <b>anonymous</b> visitor can reach <b>${esc(title(n.id))}</b> (no login required).`;
-    else if (n.label === "Finding") {
-      line = `<b>${esc(d.title)}</b> <span class="chip ok">${esc(d.status)}</span> <span class="chip">confidence ${Number(d.confidence).toFixed(2)}</span> <span class="chip">${esc(d.cwe)}</span>`;
-      if (d.evidence) line += `<br><span class="muted">Evidence: ${esc(d.evidence)}</span>`;
-    } else if (n.label === "Identity") line = `The attacker now holds a <b>${esc(d.role)}</b> session.`;
-    else if (n.label === "Asset") line = n.id === JEWEL ? `<b>Crown jewel reached: ${esc(d.name)}</b> (business value ${d.value}).` : `Reaches <b>${esc(d.name)}</b>.`;
-    else line = `<b>${esc(title(n.id))}</b>`;
-    const via = edge ? `<div class="edge">&darr; ${esc(edge.label)}</div>` : "";
-    out.push(`<li class="${n.label === "Finding" ? "find" : ""}">${line}${via}</li>`);
-  }
-  return `<ol class="steps">${out.join("")}</ol>`;
-}
-
-/* ---------- graph highlighting ---------- */
-function clear() {
-  if (!cy) return;
-  cy.elements().removeClass("hl hl-node dimmed choke fixed");
-  selectedPath = null;
-  headlineEl.textContent = "";
-  renderPaths(); renderChokes();
-  $("why").className = "card muted";
-  $("why").innerHTML = "Click <b>Show choke point</b>, or pick an attack path below to see exactly why it matters.";
+  cy.on("viewport resize render", placeTags);
+  $("loading").hidden = true;
+  placeTags();
 }
 
 function highlightPath(p, dimOthers) {
@@ -217,159 +438,331 @@ function highlightPath(p, dimOthers) {
   if (dimOthers) cy.elements().addClass("dimmed");
   ids.forEach((id, i) => {
     cy.getElementById(id).removeClass("dimmed").addClass("hl-node");
-    if (i < ids.length - 1) cy.edges(`[source = "${ids[i]}"][target = "${ids[i + 1]}"]`).removeClass("dimmed").addClass("hl");
+    if (i < ids.length - 1) {
+      const e = cy.edges(`[source = "${ids[i]}"][target = "${ids[i + 1]}"]`).removeClass("dimmed").addClass("hl");
+      if (dimOthers) e.filter(longEnough).addClass("lbl");
+    }
   });
 }
 
+// Label an edge on the canvas only when it is long enough to hold the text clear of its nodes.
+function longEnough(e) {
+  const a = e.source().renderedPosition(), b = e.target().renderedPosition();
+  return Math.hypot(a.x - b.x, a.y - b.y) > 120;
+}
+
+function clearGraph() { if (cy) cy.elements().removeClass("hl lbl hl-node dimmed choke fixed"); }
+
+/* ---------- explanation helpers (every number comes from the graph) ---------- */
+function pathFindings(p) { return p.finding_ids.map((id) => ({ id, ...props(id) })); }
+
+function formula(p) {
+  const fs = pathFindings(p);
+  const jewel = props(JEWEL).value ?? "?";
+  const conf = fs.map((f) => Number(f.confidence).toFixed(2)).join(" &times; ") || "1";
+  return `${conf} <span class="muted">(confidence)</span> &times; ${jewel} <span class="muted">(jewel value)</span> &divide; ${p.length} <span class="muted">hops</span> = <b>${p.score.toFixed(2)}</b>`;
+}
+
+function summary(p) { return nodeSteps(p).map((s) => esc(title(s.id))).join(" &rarr; "); }
+function findingChain(p) { return p.finding_ids.map((id) => esc(title(id))).join(" + "); }
+
+function findingChips(d) {
+  const st = d.status === "confirmed" ? `<span class="chip ok">${esc(d.status)}</span>` : `<span class="chip no">${esc(d.status)}</span>`;
+  return `<div class="chips">${st}<span class="chip">confidence ${Number(d.confidence).toFixed(2)}</span><span class="chip">${esc(d.cwe)}</span><span class="chip cvss">CVSS ${cvssTxt(d.cvss)} &middot; context only</span></div>`;
+}
+function cvssTxt(v) { return Number.isFinite(Number(v)) ? Number(v).toFixed(1) : esc(v); }
+
+function narrative(p) {
+  const steps = p.steps; const out = [];
+  for (let i = 0; i < steps.length; i += 2) {
+    const n = steps[i], d = props(n.id), edge = steps[i + 1];
+    let line = "", cls = "";
+    if (i === 0) line = `An <b>anonymous visitor</b> reaches <b>${esc(title(n.id))}</b> &mdash; no login required.`;
+    else if (n.label === "Finding") {
+      cls = "find";
+      line = `Uses <b>${esc(d.title)}</b>${findingChips(d)}`;
+      if (d.evidence) line += `<div class="kv"><span class="k">Evidence:</span> ${esc(d.evidence)}</div>`;
+    } else if (n.label === "Identity") line = `Now holds a <b>${esc(d.role)}</b> session.`;
+    else if (n.label === "Asset") {
+      if (n.id === JEWEL) { cls = "goal"; line = `<b>Reaches the crown jewel: ${esc(d.name)}</b> (business value ${esc(d.value)}).`; }
+      else line = `Gets into <b>${esc(d.name)}</b>.`;
+    } else line = `Reaches <b>${esc(title(n.id))}</b>.`;
+    const via = edge && steps[i + 2] ? `<div class="edge">&darr; ${esc(EDGE_PHRASE[edge.label] || edge.label)}</div>` : "";
+    out.push(`<li class="${cls}">${line}${via}</li>`);
+  }
+  return `<ol class="steps">${out.join("")}</ol>`;
+}
+
+function setWhy(html, headline) {
+  $("headline").textContent = headline || "";
+  $("why").innerHTML = html;
+}
+
+function scrollToWhy() {
+  if (window.matchMedia("(max-width: 1020px)").matches) $("why-card").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cvssTop() { return findings().slice().sort((a, b) => Number(b.props.cvss) - Number(a.props.cvss))[0]; }
+function pathsOn(fid) { return paths.filter((p) => p.finding_ids.includes(fid)); }
+
+/* ---------- hero (numbers filled from the live graph) ---------- */
+function renderHero() {
+  const top = chokes[0];
+  const nFind = findings().length;
+  $("h-findings").textContent = `${plural(nFind, "finding")}.`;
+  $("h-paths").textContent = plural(paths.length, "attack path");
+  $("h-jewel").textContent = title(JEWEL);
+  $("trace-btn").textContent = `Trace all ${paths.length} attack paths`;
+  if (top) $("h-kills").textContent = `${top.paths_severed} of them`;
+  const c = cvssTop();
+  if (top && c && c.id === top.finding_id) $("h-claim").textContent = "CVSS happens to agree here, but it can't tell you why.";
+}
+
+function renderAnswer() {
+  const top = chokes[0]; if (!top) return;
+  const d = props(top.finding_id);
+  const c = cvssTop();
+  const cOn = c ? pathsOn(c.id).length : 0;
+  const vs = c && c.id !== top.finding_id
+    ? `<div class="vs">A CVSS sort starts with <b>${esc(c.label)}</b> (CVSS ${Number(c.props.cvss).toFixed(1)}). It sits on only <b>${cOn} of ${top.paths_total}</b> paths.</div>` : "";
+  $("answer").innerHTML = `
+    <div>
+      <div class="kicker">The fix</div>
+      <div class="title">Fix ${esc(top.title)}</div>
+      <div class="stat"><span class="big">${top.paths_severed} of ${top.paths_total}</span>attack paths to ${esc(title(JEWEL))} severed${top.severs_highest_value ? " &mdash; including the highest-value one" : ""}.</div>
+      <div class="bar"><div style="width:${(100 * top.paths_severed) / top.paths_total}%"></div></div>
+      ${vs}
+    </div>
+    <div>
+      <div class="fixbox"><span class="lbl">How to fix it</span>${esc(d.fix || "See remediation guidance for this technique.")}</div>
+      <div class="row">
+        <button class="btn primary sm" id="answer-sim">Simulate fix</button>
+        <button class="btn sm" id="answer-ticket">Copy fix ticket</button>
+      </div>
+      <div class="sim" id="answer-sim-result"></div>
+    </div>`;
+  $("answer-sim").addEventListener("click", () => simulate(top.finding_id));
+  $("answer-ticket").addEventListener("click", (e) => ticket(top.finding_id, e.currentTarget));
+  $("answer").hidden = false;
+}
+
+/* ---------- actions ---------- */
+function resetAll() {
+  clearGraph();
+  selectedPath = null; severedKeys = new Set();
+  hideNode();
+  $("answer").hidden = true;
+  setWhy(DEFAULT_WHY);
+  renderPaths(); renderChokes();
+  if (cy) { taxonomyMode ? fitAndScale(30) : layout(); }
+}
+
+function prepare() {
+  clearGraph();
+  selectedPath = null; severedKeys = new Set();
+  hideNode();
+  renderPaths(); renderChokes();
+}
+
 function traceAll() {
-  clear();
+  if (!paths.length) return;
+  prepare();
   paths.forEach((p) => highlightPath(p, false));
-  headlineEl.textContent = `${paths.length} attack paths from anonymous entry points to ${title(JEWEL)}.`;
-  $("why").className = "card";
-  $("why").innerHTML = `The graph holds <b>${paths.length}</b> routes an anonymous attacker can chain through <b>confirmed</b> findings to reach <b>${esc(title(JEWEL))}</b>. Only <b>confirmed</b> findings carry attack edges; the inconclusive CSRF finding is on <b>0</b> paths. Paths are ranked by likelihood &times; impact, not CVSS.`;
+  const inconclusive = findings().filter((f) => f.props.status !== "confirmed");
+  setWhy(`<ol class="plain">
+      <li>An anonymous visitor can start at <b>${entries().length}</b> places that need no login: ${entries().map((e) => `<b>${esc(e.label)}</b>`).join(", ")}.</li>
+      <li>Chaining <b>confirmed</b> findings, the graph finds <b>${paths.length}</b> routes from there to <b>${esc(title(JEWEL))}</b> (all highlighted in red).</li>
+      ${inconclusive.length ? `<li>${inconclusive.map((f) => `<b>${esc(f.label)}</b>`).join(", ")} ${inconclusive.length === 1 ? "is" : "are"} not confirmed, so ${inconclusive.length === 1 ? "it carries" : "they carry"} no attack edges and ${inconclusive.length === 1 ? "lies" : "lie"} on <b>0</b> paths.</li>` : ""}
+      <li>Routes are ranked by likelihood &times; impact &mdash; never by CVSS. Click one in the list below to walk through it.</li>
+    </ol>`, `${plural(paths.length, "attack path")} from anonymous entry points to ${title(JEWEL)}.`);
+  scrollToWhy();
 }
 
 function selectPath(i) {
   const p = paths[i];
-  cy.elements().removeClass("hl hl-node dimmed choke fixed");
+  clearGraph();
   highlightPath(p, true);
   selectedPath = i;
-  headlineEl.textContent = `Path #${i + 1}: ${nodeSteps(p).map((s) => title(s.id)).join(" → ")}`;
+  hideNode();
   renderPaths();
-  $("why").className = "card";
-  $("why").innerHTML = `<b>Why this path matters</b><div class="muted">${p.length} hops, ${p.finding_ids.length} chained findings</div>${narrative(p)}<div class="formula">${formula(p)}</div>`;
-}
-
-/* ---------- panel renderers ---------- */
-function renderPaths(severedKeys) {
-  const sev = severedKeys || window.__severed || new Set();
-  $("paths").innerHTML = paths.map((p, i) => {
-    const key = nodeSteps(p).map((s) => s.id).join(">");
-    const cut = sev.has(key);
-    return `<div class="card ${selectedPath === i ? "sel" : ""} ${cut ? "severed" : ""}">
-      <div class="top" data-i="${i}"><span><b>#${i + 1}</b> ${cut ? "&#9986; severed" : ""}</span><span class="score">${p.score.toFixed(2)}</span></div>
-      <div class="sum">${summary(p)}</div>
-      ${selectedPath === i ? `<div class="formula">${formula(p)}</div>` : ""}</div>`;
-  }).join("");
-  document.querySelectorAll("#paths .top").forEach((el) => el.addEventListener("click", () => selectPath(+el.dataset.i)));
-}
-
-function renderChokes() {
-  $("chokes").innerHTML = chokes.filter((c) => c.paths_severed > 0).slice(0, 4).map((c, i) => `
-    <div class="card">
-      <div class="top"><span><b>${esc(c.title)}</b> ${c.severs_highest_value ? '<span class="chip ok">on the highest-value path</span>' : ""}</span>
-        <span class="score">${c.paths_severed}/${c.paths_total}</span></div>
-      <div class="bar"><div style="width:${(100 * c.paths_severed) / c.paths_total}%"></div></div>
-      <div class="muted">Fixing this one finding severs ${c.paths_severed} of ${c.paths_total} paths.</div>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-        <button class="small" data-sim="${esc(c.finding_id)}">Simulate fix</button>
-        <button class="small secondary" data-ticket="${esc(c.finding_id)}">Copy fix ticket</button></div>
-      <div id="sim-${i}-${esc(c.finding_id).replace(/[^a-z0-9]/gi, "_")}"></div>
-    </div>`).join("");
-  document.querySelectorAll("[data-sim]").forEach((b) => b.addEventListener("click", () => simulate(b.dataset.sim)));
-  document.querySelectorAll("[data-ticket]").forEach((b) => b.addEventListener("click", () => ticket(b.dataset.ticket, b)));
+  setWhy(`<p class="muted">${plural(p.length, "hop")}, ${plural(p.finding_ids.length, "chained finding")}${p.finding_ids.includes(chokes[0]?.finding_id) ? ` &middot; goes through the choke point` : ""}</p>
+    ${narrative(p)}
+    <h3>Score arithmetic</h3><div class="formula">${formula(p)}</div>
+    <p class="note">Higher score = more likely and more damaging. CVSS never enters it.</p>`,
+    `Path #${i + 1} of ${paths.length}`);
+  scrollToWhy();
 }
 
 async function showChokePoint() {
-  clear();
   const top = chokes[0];
   if (!top) return;
+  prepare();
+  renderAnswer();
   cy.elements().addClass("dimmed");
-  paths.filter((p) => p.finding_ids.includes(top.finding_id)).forEach((p) => highlightPath(p, false));
+  const on = pathsOn(top.finding_id), off = paths.filter((p) => !p.finding_ids.includes(top.finding_id));
+  on.forEach((p) => highlightPath(p, false));
   cy.getElementById(top.finding_id).removeClass("dimmed").addClass("choke");
-  headlineEl.textContent = (await getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`)).headline || "";
+  cy.getElementById(JEWEL).removeClass("dimmed");
   const d = props(top.finding_id);
-  $("why").className = "card";
-  $("why").innerHTML = `<b>${esc(top.title)}</b> sits on <b>${top.paths_severed} of ${top.paths_total}</b> attack paths${top.severs_highest_value ? ", including the highest-value one" : ""}. Remove it and those paths collapse; no severity-sorted list can tell you that, because it only exists as a property of the graph.
-    <div class="fix"><b>Fix:</b> ${esc(d.fix || "see remediation guidance")}</div>
-    <div class="muted" style="margin-top:6px">CVSS ${d.cvss} is shown for context only; it was not used for ranking.</div>`;
+  const best = on[0];
+  setWhy(`<ol class="plain">
+      <li>An anonymous visitor can start at <b>${entries().length}</b> places that need no login: ${entries().map((e) => `<b>${esc(e.label)}</b>`).join(", ")}.</li>
+      <li>Chaining confirmed findings, there are <b>${paths.length}</b> routes from there to <b>${esc(title(JEWEL))}</b>.</li>
+      <li><b>${top.paths_severed} of those ${top.paths_total}</b> routes pass through one finding: <b>${esc(top.title)}</b>${top.severs_highest_value && best ? ` &mdash; including the highest-value route (score ${best.score.toFixed(2)})` : ""}.</li>
+      <li>Fix it and those ${top.paths_severed} routes break. ${off.length ? `The other <b>${off.length}</b> avoid it: ${off.map((p) => findingChain(p)).join("; ")}.` : "No route is left."}</li>
+    </ol>
+    <h3>The finding</h3>
+    <div class="evidence-box"><div class="t">${esc(d.title)}</div>${findingChips(d)}
+      ${d.evidence ? `<div class="kv"><span class="k">Evidence:</span> ${esc(d.evidence)}</div>` : ""}
+      ${d.fix ? `<div class="fix"><b>Fix:</b> ${esc(d.fix)}</div>` : ""}</div>
+    ${best ? `<h3>The highest-value route it sits on, step by step</h3>${narrative(best)}<div class="formula">${formula(best)}</div>` : ""}
+    <h3>Score arithmetic for every route it sits on</h3>
+    <ul class="arith">${on.map((p) => `<li><div>${summary(p)}</div><div class="formula">${formula(p)}</div></li>`).join("")}</ul>
+    <p class="note">Score = product of each finding's confidence &times; the crown jewel's business value &divide; number of hops.</p>`,
+    "");
+  try { const c = await getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`); $("headline").textContent = c.headline || ""; } catch (e) { /* panel already explains it */ }
+  $("answer").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 async function simulate(findingId) {
-  const res = await getJSON(`/api/whatif?finding=${encodeURIComponent(findingId)}&crown_jewel=${JEWEL}`);
+  const out = $("answer-sim-result");
+  if (out && !$("answer").hidden) out.innerHTML = `<span class="muted">Re-running the attack-path query without this finding&hellip;</span>`;
+  let res;
+  try { res = await getJSON(`/api/whatif?finding=${encodeURIComponent(findingId)}&crown_jewel=${JEWEL}`); }
+  catch (e) { if (out) out.innerHTML = `<span class="muted">The simulation is unavailable right now; the explanation above still holds.</span>`; return; }
   const remain = new Set(res.remaining.map((r) => r.join(">")));
-  const severed = new Set(paths.map((p) => nodeSteps(p).map((s) => s.id).join(">")).filter((k) => !remain.has(k)));
-  window.__severed = severed;
-  cy.elements().removeClass("hl hl-node dimmed choke fixed");
+  severedKeys = new Set(paths.map(keyOf).filter((k) => !remain.has(k)));
+  clearGraph();
+  hideNode();
   cy.elements().addClass("dimmed");
-  paths.forEach((p) => { if (remain.has(nodeSteps(p).map((s) => s.id).join(">"))) highlightPath(p, false); });
+  paths.forEach((p) => { if (remain.has(keyOf(p))) highlightPath(p, false); });
   cy.getElementById(findingId).removeClass("dimmed").addClass("fixed");
-  const best = paths[0] ? nodeSteps(paths[0]).map((s) => s.id).join(">") : null;
-  headlineEl.textContent = `If ${title(findingId)} is fixed: ${severed.size} of ${paths.length} paths severed, ${remain.size} remain.`;
-  $("why").className = "card";
-  $("why").innerHTML = `<b>Simulated fix:</b> ${esc(title(findingId))}<br>FalkorDB re-ran the attack-path query with this finding removed (graph untouched): <b>${remain.size}</b> of ${paths.length} paths remain${best && severed.has(best) ? ", and the highest-value path is cut." : "."}
-    <div class="muted" style="margin-top:6px">Remaining: ${res.remaining.map((r) => r.filter((id) => id.startsWith("f:")).map((id) => esc(title(id))).join(" + ")).join("; ") || "none"}</div>`;
-  renderPaths(severed);
+  cy.getElementById(JEWEL).removeClass("dimmed");
+  const bestCut = paths[0] && severedKeys.has(keyOf(paths[0]));
+  const remainingTxt = res.remaining.map((r) => r.filter((id) => id.startsWith("f:")).map((id) => esc(title(id))).join(" + ")).join("; ") || "none";
+  const line = `<b>${severedKeys.size} of ${paths.length}</b> paths severed, <b>${remain.size}</b> remain${bestCut ? " &mdash; the highest-value path is cut" : ""}.`;
+  if (out && !$("answer").hidden && chokes[0] && chokes[0].finding_id === findingId) out.innerHTML = `<span class="ok">&#10003; Simulated in FalkorDB:</span> ${line}`;
+  setWhy(`<p>FalkorDB re-ran the attack-path query with <b>${esc(title(findingId))}</b> excluded. The stored graph is not modified.</p>
+    <ol class="plain"><li>${line}</li><li>What is still open: ${remainingTxt}.</li></ol>
+    <p class="note">The remaining routes stay highlighted in red; the fixed finding is green.</p>`,
+    `If ${title(findingId)} is fixed: ${severedKeys.size} of ${paths.length} paths severed, ${remain.size} remain.`);
+  renderPaths();
 }
 
 function ticket(findingId, btn) {
   const c = chokes.find((x) => x.finding_id === findingId); const d = props(findingId);
-  const ps = paths.filter((p) => p.finding_ids.includes(findingId));
+  const ps = pathsOn(findingId);
   const md = `## Fix: ${c.title}\n\n**Why first:** it lies on ${c.paths_severed} of ${c.paths_total} attack paths to ${title(JEWEL)}` +
     `${c.severs_highest_value ? ", including the highest-value path" : ""}.\n\n**Remediation:** ${d.fix || "n/a"}\n\n**Paths severed:**\n` +
     ps.map((p, i) => `${i + 1}. ${nodeSteps(p).map((s) => title(s.id)).join(" -> ")} (score ${p.score.toFixed(2)})`).join("\n") +
     `\n\n_Evidence: ${d.status}, confidence ${d.confidence}, ${d.cwe}. CVSS ${d.cvss} not used for ranking. Generated by CrownPath from the FalkorDB attack-path graph._`;
-  navigator.clipboard.writeText(md).then(() => { const t = btn.textContent; btn.textContent = "Copied!"; setTimeout(() => (btn.textContent = t), 1500); })
-    .catch(() => { $("why").className = "card"; $("why").innerHTML = `<pre class="answer">${esc(md)}</pre>`; });
+  const done = () => { const t = btn.textContent; btn.textContent = "Copied!"; setTimeout(() => (btn.textContent = t), 1500); };
+  const fallback = () => setWhy(`<h3>Fix ticket (copy below)</h3><pre class="answer-text">${esc(md)}</pre>`);
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(md).then(done).catch(fallback);
+  else fallback();
 }
 
+/* ---------- lists ---------- */
+function renderPaths() {
+  const topId = chokes[0]?.finding_id;
+  $("paths").innerHTML = paths.map((p, i) => {
+    const cut = severedKeys.has(keyOf(p));
+    return `<div class="item click ${selectedPath === i ? "sel" : ""} ${cut ? "severed" : ""}" data-i="${i}" role="button" tabindex="0">
+      <div class="top"><span class="name">Path #${i + 1}${p.finding_ids.includes(topId) ? ' <span class="chip">via choke point</span>' : ""}${cut ? ' <span class="cut">&#9986; severed</span>' : ""}</span><span class="score">score ${p.score.toFixed(2)}</span></div>
+      <div class="sum">${summary(p)}</div></div>`;
+  }).join("");
+  document.querySelectorAll("#paths .item").forEach((el) => {
+    el.addEventListener("click", () => selectPath(+el.dataset.i));
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectPath(+el.dataset.i); } });
+  });
+}
+
+function renderChokes() {
+  $("chokes").innerHTML = chokes.filter((c) => c.paths_severed > 0).slice(0, 4).map((c, i) => {
+    const d = props(c.finding_id);
+    return `<div class="item">
+      <div class="top"><span class="name">${i === 0 ? "&#9733; " : ""}${esc(c.title)}</span><span class="score">${c.paths_severed} of ${c.paths_total} paths</span></div>
+      <div class="bar"><div style="width:${(100 * c.paths_severed) / c.paths_total}%"></div></div>
+      <div class="muted" style="font-size:14px">Fixing this one finding severs ${plural(c.paths_severed, "path")}${c.severs_highest_value ? ", including the highest-value one" : ""}. <span class="chip cvss">CVSS ${cvssTxt(d.cvss)} &middot; context only</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn sm ${i === 0 ? "primary" : ""}" data-sim="${esc(c.finding_id)}">Simulate fix</button>
+        <button class="btn sm ghost" data-ticket="${esc(c.finding_id)}">Copy fix ticket</button></div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll("[data-sim]").forEach((b) => b.addEventListener("click", () => { simulate(b.dataset.sim); scrollToWhy(); }));
+  document.querySelectorAll("[data-ticket]").forEach((b) => b.addEventListener("click", () => ticket(b.dataset.ticket, b)));
+}
+
+/* ---------- node details ---------- */
 function showNode(id) {
   const d = nodeData[id]; if (!d) return; const p = d.props;
-  let html = `<b>${esc(d.label)}</b> <span class="chip">${esc(d.type)}</span>`;
+  let html = `<div class="t">${esc(d.label)} <span class="chip">${esc(d.type)}</span></div>`;
   if (d.type === "Finding") {
-    html += `<div style="margin-top:6px"><span class="chip ok">${esc(p.status)}</span> <span class="chip">confidence ${p.confidence}</span> <span class="chip">${esc(p.cwe)}</span> <span class="chip">CVSS ${p.cvss} (not used for ranking)</span></div>`;
-    const on = paths.filter((x) => x.finding_ids.includes(id)).length;
-    html += `<div class="muted" style="margin-top:6px">${p.status === "confirmed" ? `On ${on} of ${paths.length} attack paths.` : "Not confirmed: carries no attack edges, so it lies on no path."}</div>`;
-    if (p.evidence) html += `<div style="margin-top:6px">Evidence: ${esc(p.evidence)}</div>`;
+    html += findingChips(p);
+    const on = pathsOn(id).length;
+    html += `<div class="kv">${p.status === "confirmed" ? `On <b>${on} of ${paths.length}</b> attack paths.` : "Not confirmed: carries no attack edges, so it lies on no path."}</div>`;
+    if (p.evidence) html += `<div class="kv"><span class="k">Evidence:</span> ${esc(p.evidence)}</div>`;
     if (p.fix) html += `<div class="fix"><b>Fix:</b> ${esc(p.fix)}</div>`;
   } else if (d.type === "Asset") {
-    html += `<div class="muted" style="margin-top:6px">${esc(p.type)} &middot; value ${p.value}${p.is_crown_jewel ? " &middot; CROWN JEWEL" : ""}</div>`;
+    html += `<div class="kv">${esc(p.type)} &middot; business value ${esc(p.value)}${p.is_crown_jewel ? " &middot; <b>crown jewel</b>" : ""}</div>`;
   } else if (d.type === "Endpoint") {
-    html += `<div class="muted" style="margin-top:6px">${p.auth_required ? "login required" : "anonymous entry point (no login)"}</div>`;
+    html += `<div class="kv">${p.auth_required ? "Login required" : "<b>Anonymous entry point</b> &mdash; no login needed"}</div>`;
   } else if (d.type === "Identity") {
-    html += `<div class="muted" style="margin-top:6px">privilege level ${p.privilege_level}</div>`;
+    html += `<div class="kv">Role ${esc(p.role)} &middot; privilege level ${esc(p.privilege_level)}</div>`;
   }
   $("detail").innerHTML = html; $("detail-section").hidden = false;
 }
 function hideNode() { $("detail-section").hidden = true; }
 
+/* ---------- agent + memory (answers render in the Why panel) ---------- */
 async function askAgent() {
-  $("agent-section").hidden = false; $("agent-banner").hidden = true; $("agent-answer").textContent = "Asking the agent...";
-  $("agent-section").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  setWhy(`<p class="muted">Asking the agent&hellip; it picks graph tools itself and cites the paths it finds. This can take up to ~30 s.</p>`, "Agent answer");
+  scrollToWhy();
   try {
     const data = await getJSON(`/api/agent?crown_jewel=${JEWEL}`);
-    $("agent-answer").textContent = data.answer || "";
-    if (data.sample_response) { $("agent-banner").textContent = `Sample response (${data.reason || "recorded run"})`; $("agent-banner").hidden = false; }
-    else { $("agent-banner").textContent = data.source === "llm" ? "Answered live by the LLM using graph tools" : "Answered from the graph (no LLM needed)"; $("agent-banner").hidden = false; }
-  } catch (e) { $("agent-answer").textContent = "The agent is unavailable right now; the graph panels above still work."; }
+    const banner = data.sample_response ? `Sample response (${esc(data.reason || "recorded run")})`
+      : data.source === "llm" ? "Answered live by the LLM using the graph tools" : "Answered straight from the graph (no LLM needed)";
+    setWhy(`<span class="banner">${banner}</span><pre class="answer-text">${esc(data.answer || "")}</pre>`, "Agent answer");
+  } catch (e) {
+    setWhy(`<p>The agent is unavailable right now; the graph panels still work.</p>`, "Agent answer");
+  }
 }
 
 async function showChanges() {
-  clear();
-  const d = await getJSON(`/api/changes?crown_jewel=${JEWEL}`);
-  $("changes-section").hidden = false;
-  if (!d.available) { $("changes").textContent = "No scan history recorded in this graph."; return; }
-  headlineEl.textContent = d.headline;
+  prepare();
+  let d;
+  try { d = await getJSON(`/api/changes?crown_jewel=${JEWEL}`); }
+  catch (e) { setWhy(`<p>Scan history is unavailable right now.</p>`, "What changed between scans"); return; }
+  if (!d.available) { setWhy(`<p>No scan history is recorded in this graph.</p>`, "What changed between scans"); return; }
   d.added.forEach((f) => cy.getElementById(f.finding_id).addClass("choke"));
   d.regressed.forEach((r) => cy.getElementById(r.asset_id).addClass("hl-node"));
-  $("changes").innerHTML = `<b>${esc(d.since)} &rarr; ${esc(d.until)}</b><br>Crown-jewel paths: <b>${d.paths.since} &rarr; ${d.paths.until}</b><br>` +
-    `Added: ${d.added.map((f) => esc(f.title)).join(", ") || "none"}<br>Removed: ${d.removed.map((f) => esc(f.title)).join(", ") || "none"}<br>` +
-    `Regressed: ${d.regressed.map((r) => `<b>${esc(r.asset_name)}</b> (+${r.new_paths} paths via ${esc(title(r.finding_id))})`).join(", ") || "none"}`;
+  setWhy(`<p class="muted">The graph remembers every scan. Comparing <b>${esc(d.since)}</b> &rarr; <b>${esc(d.until)}</b>:</p>
+    <ol class="plain">
+      <li>Attack paths to ${esc(title(JEWEL))}: <b>${d.paths.since} &rarr; ${d.paths.until}</b>.</li>
+      <li>Added: ${d.added.map((f) => `<b>${esc(f.title)}</b>`).join(", ") || "none"}.</li>
+      <li>Removed: ${d.removed.map((f) => `<b>${esc(f.title)}</b>`).join(", ") || "none"}.</li>
+      <li>Regressed: ${d.regressed.map((r) => `<b>${esc(r.asset_name)}</b> (+${r.new_paths} paths via ${esc(title(r.finding_id))})`).join(", ") || "none"}.</li>
+    </ol>`, d.headline);
+  scrollToWhy();
 }
 
 $("trace-btn").addEventListener("click", traceAll);
 $("choke-btn").addEventListener("click", showChokePoint);
 $("changes-btn").addEventListener("click", showChanges);
 $("agent-btn").addEventListener("click", askAgent);
-$("reset-btn").addEventListener("click", () => { window.__severed = null; clear(); if (cy) layout(); });
-$("taxonomy-toggle").addEventListener("change", async (e) => { await loadGraph(e.target.checked); });
+$("reset-btn").addEventListener("click", resetAll);
+$("taxonomy-toggle").addEventListener("change", async (e) => { await loadGraph(e.target.checked); resetAll(); });
 
 (async function init() {
-  await loadGraph(false);
-  const [p, c] = await Promise.all([getJSON(`/api/paths?crown_jewel=${JEWEL}`), getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`)]);
-  paths = (p.paths || []).slice().sort((a, b) => b.score - a.score);
-  chokes = c.choke_points || [];
-  renderPaths(); renderChokes();
+  setWhy(DEFAULT_WHY);
+  try {
+    const [, p, c] = await Promise.all([loadGraph(false), getJSON(`/api/paths?crown_jewel=${JEWEL}`), getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`)]);
+    paths = (p.paths || []).slice().sort((a, b) => b.score - a.score);
+    chokes = c.choke_points || [];
+    renderHero(); renderPaths(); renderChokes();
+  } catch (e) {
+    $("loading").innerHTML = `Couldn't reach the graph just now.<br><span class="muted">Reload in a moment &mdash; the free server may still be waking up.</span>`;
+  }
 })();
 </script>
 </body>
