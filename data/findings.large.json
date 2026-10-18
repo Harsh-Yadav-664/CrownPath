@@ -1,0 +1,735 @@
+{
+  "access": [
+    {
+      "asset_id": "asset:orders",
+      "identity_id": "id:customer"
+    },
+    {
+      "asset_id": "asset:catalog",
+      "identity_id": "id:customer"
+    },
+    {
+      "asset_id": "asset:sso",
+      "identity_id": "id:customer"
+    },
+    {
+      "asset_id": "asset:admin",
+      "identity_id": "id:support-agent"
+    },
+    {
+      "asset_id": "asset:customer-db",
+      "identity_id": "id:admin"
+    },
+    {
+      "asset_id": "asset:reporting",
+      "identity_id": "id:admin"
+    },
+    {
+      "asset_id": "asset:ci",
+      "identity_id": "id:admin"
+    },
+    {
+      "asset_id": "asset:ci",
+      "identity_id": "id:ci-bot"
+    },
+    {
+      "asset_id": "asset:secrets",
+      "identity_id": "id:cloud-admin"
+    },
+    {
+      "asset_id": "asset:backups",
+      "identity_id": "id:cloud-admin"
+    }
+  ],
+  "assets": [
+    {
+      "environment": "prod",
+      "id": "asset:storefront",
+      "is_crown_jewel": false,
+      "name": "Storefront",
+      "type": "webapp",
+      "value": 20
+    },
+    {
+      "environment": "prod",
+      "id": "asset:mobile-gw",
+      "is_crown_jewel": false,
+      "name": "Mobile API gateway",
+      "type": "service",
+      "value": 30
+    },
+    {
+      "environment": "prod",
+      "id": "asset:partner-api",
+      "is_crown_jewel": false,
+      "name": "Partner API",
+      "type": "service",
+      "value": 30
+    },
+    {
+      "environment": "prod",
+      "id": "asset:cms",
+      "is_crown_jewel": false,
+      "name": "Marketing CMS",
+      "type": "webapp",
+      "value": 15
+    },
+    {
+      "environment": "prod",
+      "id": "asset:support",
+      "is_crown_jewel": false,
+      "name": "Support portal",
+      "type": "webapp",
+      "value": 25
+    },
+    {
+      "environment": "staging",
+      "id": "asset:staging",
+      "is_crown_jewel": false,
+      "name": "Staging storefront",
+      "type": "webapp",
+      "value": 10
+    },
+    {
+      "environment": "prod",
+      "id": "asset:backups",
+      "is_crown_jewel": false,
+      "name": "Backup storage",
+      "type": "host",
+      "value": 55
+    },
+    {
+      "environment": "prod",
+      "id": "asset:orders",
+      "is_crown_jewel": false,
+      "name": "Orders service",
+      "type": "service",
+      "value": 40
+    },
+    {
+      "environment": "prod",
+      "id": "asset:payments",
+      "is_crown_jewel": false,
+      "name": "Payments service",
+      "type": "service",
+      "value": 60
+    },
+    {
+      "environment": "prod",
+      "id": "asset:catalog",
+      "is_crown_jewel": false,
+      "name": "Catalog service",
+      "type": "service",
+      "value": 20
+    },
+    {
+      "environment": "prod",
+      "id": "asset:sso",
+      "is_crown_jewel": false,
+      "name": "Identity provider (SSO)",
+      "type": "service",
+      "value": 70
+    },
+    {
+      "environment": "prod",
+      "id": "asset:admin",
+      "is_crown_jewel": false,
+      "name": "Admin console",
+      "type": "service",
+      "value": 60
+    },
+    {
+      "environment": "prod",
+      "id": "asset:reporting",
+      "is_crown_jewel": false,
+      "name": "Reporting service",
+      "type": "service",
+      "value": 35
+    },
+    {
+      "environment": "corp",
+      "id": "asset:ci",
+      "is_crown_jewel": false,
+      "name": "CI/CD server",
+      "type": "host",
+      "value": 65
+    },
+    {
+      "environment": "corp",
+      "id": "asset:jumphost",
+      "is_crown_jewel": false,
+      "name": "Ops jump host",
+      "type": "host",
+      "value": 50
+    },
+    {
+      "environment": "prod",
+      "id": "asset:customer-db",
+      "is_crown_jewel": true,
+      "name": "Customer database",
+      "type": "database",
+      "value": 100
+    },
+    {
+      "environment": "prod",
+      "id": "asset:card-vault",
+      "is_crown_jewel": true,
+      "name": "Payment card vault",
+      "type": "database",
+      "value": 95
+    },
+    {
+      "environment": "prod",
+      "id": "asset:secrets",
+      "is_crown_jewel": true,
+      "name": "Cloud secrets manager",
+      "type": "service",
+      "value": 90
+    },
+    {
+      "environment": "prod",
+      "id": "asset:orders-db",
+      "is_crown_jewel": false,
+      "name": "Orders database",
+      "type": "database",
+      "value": 50
+    },
+    {
+      "environment": "prod",
+      "id": "asset:warehouse",
+      "is_crown_jewel": false,
+      "name": "Analytics warehouse",
+      "type": "database",
+      "value": 45
+    }
+  ],
+  "connections": [
+    {
+      "from_asset_id": "asset:orders",
+      "to_asset_id": "asset:payments"
+    },
+    {
+      "from_asset_id": "asset:admin",
+      "to_asset_id": "asset:payments"
+    },
+    {
+      "from_asset_id": "asset:admin",
+      "to_asset_id": "asset:jumphost"
+    }
+  ],
+  "endpoints": [
+    {
+      "asset_id": "asset:storefront",
+      "auth_required": false,
+      "id": "ep:sf-search",
+      "method": "GET",
+      "url": "/search"
+    },
+    {
+      "asset_id": "asset:storefront",
+      "auth_required": false,
+      "id": "ep:sf-login",
+      "method": "POST",
+      "url": "/login"
+    },
+    {
+      "asset_id": "asset:storefront",
+      "auth_required": false,
+      "id": "ep:sf-git",
+      "method": "GET",
+      "url": "/.git/config"
+    },
+    {
+      "asset_id": "asset:storefront",
+      "auth_required": true,
+      "id": "ep:sf-account",
+      "method": "GET",
+      "url": "/account"
+    },
+    {
+      "asset_id": "asset:mobile-gw",
+      "auth_required": false,
+      "id": "ep:mg-token",
+      "method": "POST",
+      "url": "/v2/auth/token"
+    },
+    {
+      "asset_id": "asset:mobile-gw",
+      "auth_required": true,
+      "id": "ep:mg-profile",
+      "method": "GET",
+      "url": "/v2/profile"
+    },
+    {
+      "asset_id": "asset:partner-api",
+      "auth_required": false,
+      "id": "ep:pa-webhook",
+      "method": "POST",
+      "url": "/v1/webhooks/test"
+    },
+    {
+      "asset_id": "asset:partner-api",
+      "auth_required": true,
+      "id": "ep:pa-catalog",
+      "method": "GET",
+      "url": "/v1/catalog"
+    },
+    {
+      "asset_id": "asset:cms",
+      "auth_required": false,
+      "id": "ep:cms-preview",
+      "method": "GET",
+      "url": "/cms/preview"
+    },
+    {
+      "asset_id": "asset:cms",
+      "auth_required": true,
+      "id": "ep:cms-media",
+      "method": "POST",
+      "url": "/cms/media"
+    },
+    {
+      "asset_id": "asset:support",
+      "auth_required": false,
+      "id": "ep:sp-tickets",
+      "method": "POST",
+      "url": "/support/tickets"
+    },
+    {
+      "asset_id": "asset:support",
+      "auth_required": true,
+      "id": "ep:sp-inbox",
+      "method": "GET",
+      "url": "/support/inbox"
+    },
+    {
+      "asset_id": "asset:staging",
+      "auth_required": false,
+      "id": "ep:stg-app",
+      "method": "GET",
+      "url": "/"
+    },
+    {
+      "asset_id": "asset:backups",
+      "auth_required": false,
+      "id": "ep:bk-bucket",
+      "method": "GET",
+      "url": "/backups/"
+    },
+    {
+      "asset_id": "asset:orders",
+      "auth_required": true,
+      "id": "ep:or-orders",
+      "method": "GET",
+      "url": "/api/orders/{id}"
+    },
+    {
+      "asset_id": "asset:orders",
+      "auth_required": true,
+      "id": "ep:or-export",
+      "method": "GET",
+      "url": "/api/orders/export"
+    },
+    {
+      "asset_id": "asset:payments",
+      "auth_required": true,
+      "id": "ep:pay-jobs",
+      "method": "POST",
+      "url": "/internal/jobs"
+    },
+    {
+      "asset_id": "asset:payments",
+      "auth_required": true,
+      "id": "ep:pay-refunds",
+      "method": "POST",
+      "url": "/api/refunds"
+    },
+    {
+      "asset_id": "asset:catalog",
+      "auth_required": true,
+      "id": "ep:cat-debug",
+      "method": "GET",
+      "url": "/api/catalog/debug"
+    },
+    {
+      "asset_id": "asset:catalog",
+      "auth_required": true,
+      "id": "ep:cat-files",
+      "method": "GET",
+      "url": "/api/catalog/files"
+    },
+    {
+      "asset_id": "asset:sso",
+      "auth_required": true,
+      "id": "ep:sso-users",
+      "method": "PATCH",
+      "url": "/sso/users/me"
+    },
+    {
+      "asset_id": "asset:admin",
+      "auth_required": true,
+      "id": "ep:ad-users",
+      "method": "GET",
+      "url": "/admin/users"
+    },
+    {
+      "asset_id": "asset:reporting",
+      "auth_required": true,
+      "id": "ep:rp-export",
+      "method": "GET",
+      "url": "/reports/export"
+    },
+    {
+      "asset_id": "asset:ci",
+      "auth_required": true,
+      "id": "ep:ci-logs",
+      "method": "GET",
+      "url": "/ci/pipelines/logs"
+    },
+    {
+      "asset_id": "asset:jumphost",
+      "auth_required": true,
+      "id": "ep:jh-console",
+      "method": "POST",
+      "url": "/ops/console"
+    }
+  ],
+  "findings": [
+    {
+      "confidence": 0.9,
+      "cvss": 6.1,
+      "cwe": "CWE-79",
+      "discovered_at": "2026-10-15T12:25:00Z",
+      "endpoint_id": "ep:sf-search",
+      "evidence": "The q parameter is echoed unescaped into the results heading.",
+      "grants_identity_id": "id:customer",
+      "id": "f:sf-xss",
+      "status": "confirmed",
+      "technique_id": "xss",
+      "title": "Reflected XSS on /search",
+      "vuln_type": "xss"
+    },
+    {
+      "confidence": 0.75,
+      "cvss": 6.5,
+      "cwe": "CWE-307",
+      "discovered_at": "2026-10-16T05:58:00Z",
+      "endpoint_id": "ep:sf-login",
+      "evidence": "500 failed logins in a minute were accepted with no lockout, CAPTCHA or delay.",
+      "grants_identity_id": "id:customer",
+      "id": "f:sf-stuffing",
+      "status": "confirmed",
+      "technique_id": "account-takeover",
+      "title": "Credential stuffing on /login (no rate limit or lockout)",
+      "vuln_type": "auth_bypass"
+    },
+    {
+      "confidence": 0.95,
+      "cvss": 7.5,
+      "cwe": "CWE-538",
+      "discovered_at": "2026-10-14T17:42:00Z",
+      "endpoint_id": "ep:sf-git",
+      "evidence": "/.git/config is served and its remote URL embeds a CI deploy token.",
+      "grants_identity_id": "id:ci-bot",
+      "id": "f:sf-git",
+      "status": "confirmed",
+      "technique_id": "exposed-git",
+      "title": "Exposed .git/config with a CI deploy token",
+      "vuln_type": "info_disclosure"
+    },
+    {
+      "confidence": 0.8,
+      "cvss": 8.2,
+      "cwe": "CWE-347",
+      "discovered_at": "2026-10-16T23:26:00Z",
+      "endpoint_id": "ep:mg-token",
+      "evidence": "An unsigned token with alg=none was accepted as a valid customer session.",
+      "grants_identity_id": "id:customer",
+      "id": "f:mg-jwt",
+      "status": "confirmed",
+      "technique_id": "jwt",
+      "title": "JWT with alg 'none' accepted on /v2/auth/token",
+      "vuln_type": "auth_bypass"
+    },
+    {
+      "confidence": 0.4,
+      "cvss": 5.4,
+      "cwe": "CWE-942",
+      "discovered_at": "2026-10-17T05:35:00Z",
+      "endpoint_id": "ep:mg-profile",
+      "evidence": "Origin is reflected with Allow-Credentials: true; a cross-site read was not reproduced.",
+      "id": "f:mg-cors",
+      "status": "inconclusive",
+      "technique_id": "cors",
+      "title": "Reflected Origin with credentials on /v2/profile",
+      "vuln_type": "cors"
+    },
+    {
+      "confidence": 0.65,
+      "cvss": 8.6,
+      "cwe": "CWE-918",
+      "discovered_at": "2026-10-15T00:46:00Z",
+      "endpoint_id": "ep:pa-webhook",
+      "evidence": "The tester fetched an internal Payments service URL and returned its body.",
+      "id": "f:pa-ssrf",
+      "leads_to_asset_id": "asset:payments",
+      "status": "confirmed",
+      "technique_id": "ssrf",
+      "title": "SSRF in the webhook tester /v1/webhooks/test",
+      "vuln_type": "ssrf"
+    },
+    {
+      "confidence": 0.55,
+      "cvss": 7.7,
+      "cwe": "CWE-918",
+      "discovered_at": "2026-10-15T15:08:00Z",
+      "endpoint_id": "ep:cms-preview",
+      "evidence": "The preview URL fetched the instance metadata service, exposing role credentials.",
+      "grants_identity_id": "id:cloud-admin",
+      "id": "f:cms-ssrf",
+      "status": "confirmed",
+      "technique_id": "cloud-metadata-creds",
+      "title": "SSRF to cloud metadata via /cms/preview",
+      "vuln_type": "ssrf"
+    },
+    {
+      "confidence": 0.6,
+      "cvss": 8.8,
+      "cwe": "CWE-434",
+      "discovered_at": "2026-10-14T16:38:00Z",
+      "endpoint_id": "ep:cms-media",
+      "evidence": "A .php file uploaded by an editor account executed on the CMS host.",
+      "id": "f:cms-upload",
+      "leads_to_asset_id": "asset:cms",
+      "status": "confirmed",
+      "technique_id": "insecure-file-upload",
+      "title": "Unrestricted file upload on /cms/media",
+      "vuln_type": "file_upload"
+    },
+    {
+      "confidence": 0.75,
+      "cvss": 5.4,
+      "cwe": "CWE-79",
+      "discovered_at": "2026-10-15T22:13:00Z",
+      "endpoint_id": "ep:sp-tickets",
+      "evidence": "Script in an anonymous ticket ran in the agent inbox and read the agent session.",
+      "grants_identity_id": "id:support-agent",
+      "id": "f:sp-xss",
+      "status": "confirmed",
+      "technique_id": "xss",
+      "title": "Stored XSS in support ticket body",
+      "vuln_type": "xss"
+    },
+    {
+      "confidence": 0.3,
+      "cvss": 4.3,
+      "cwe": "CWE-352",
+      "discovered_at": "2026-10-15T19:58:00Z",
+      "endpoint_id": "ep:sp-inbox",
+      "evidence": "No CSRF token on inbox actions; SameSite cookies may already block it.",
+      "id": "f:sp-csrf",
+      "status": "inconclusive",
+      "technique_id": "csrf",
+      "title": "CSRF on /support/inbox",
+      "vuln_type": "csrf"
+    },
+    {
+      "confidence": 0.9,
+      "cvss": 9.8,
+      "cwe": "CWE-94",
+      "discovered_at": "2026-10-15T10:21:00Z",
+      "endpoint_id": "ep:stg-app",
+      "evidence": "The framework version banner matches a public RCE advisory; the probe executed `id`.",
+      "id": "f:stg-cve",
+      "leads_to_asset_id": "asset:staging",
+      "status": "confirmed",
+      "technique_id": "known-cve",
+      "title": "Known RCE in the outdated web framework on staging",
+      "vuln_type": "rce"
+    },
+    {
+      "confidence": 0.35,
+      "cvss": 7.5,
+      "cwe": "CWE-200",
+      "discovered_at": "2026-10-17T06:21:00Z",
+      "endpoint_id": "ep:bk-bucket",
+      "evidence": "The bucket listing is public; whether the dump files are readable was not verified.",
+      "id": "f:bk-public",
+      "leads_to_asset_id": "asset:customer-db",
+      "status": "inconclusive",
+      "technique_id": "cloud-storage-exposure",
+      "title": "Publicly listable backup bucket",
+      "vuln_type": "info_disclosure"
+    },
+    {
+      "confidence": 0.85,
+      "cvss": 8.1,
+      "cwe": "CWE-639",
+      "discovered_at": "2026-10-14T15:42:00Z",
+      "endpoint_id": "ep:or-orders",
+      "evidence": "Changing the order id returned another customer's name, address and order history.",
+      "id": "f:or-idor",
+      "leads_to_asset_id": "asset:customer-db",
+      "status": "confirmed",
+      "technique_id": "idor",
+      "title": "IDOR on /api/orders/{id}",
+      "vuln_type": "idor"
+    },
+    {
+      "confidence": 0.5,
+      "cvss": 8.6,
+      "cwe": "CWE-89",
+      "discovered_at": "2026-10-15T17:42:00Z",
+      "endpoint_id": "ep:or-export",
+      "evidence": "A time-based payload in the date filter delayed the response by 5 s.",
+      "id": "f:or-sqli",
+      "leads_to_asset_id": "asset:orders-db",
+      "status": "confirmed",
+      "technique_id": "sqli",
+      "title": "SQL injection in /api/orders/export",
+      "vuln_type": "sqli"
+    },
+    {
+      "confidence": 0.6,
+      "cvss": 9.8,
+      "cwe": "CWE-502",
+      "discovered_at": "2026-10-15T02:14:00Z",
+      "endpoint_id": "ep:pay-jobs",
+      "evidence": "A crafted serialized job object triggered an outbound callback from the Payments service.",
+      "id": "f:pay-deser",
+      "leads_to_asset_id": "asset:card-vault",
+      "status": "confirmed",
+      "technique_id": "insecure-deserialization",
+      "title": "Insecure deserialization on /internal/jobs",
+      "vuln_type": "deserialization"
+    },
+    {
+      "confidence": 0.9,
+      "cvss": 5.3,
+      "cwe": "CWE-209",
+      "discovered_at": "2026-10-15T00:08:00Z",
+      "endpoint_id": "ep:cat-debug",
+      "evidence": "The debug route returns full stack traces with library versions.",
+      "id": "f:cat-debug",
+      "status": "confirmed",
+      "technique_id": "information-disclosure",
+      "title": "Stack traces from /api/catalog/debug",
+      "vuln_type": "info_disclosure"
+    },
+    {
+      "confidence": 0.2,
+      "cvss": 7.5,
+      "cwe": "CWE-22",
+      "discovered_at": "2026-10-14T19:22:00Z",
+      "endpoint_id": "ep:cat-files",
+      "evidence": "../ sequences are normalised before the file lookup; no file outside the root was read.",
+      "id": "f:cat-traversal",
+      "status": "refuted",
+      "technique_id": "path-traversal",
+      "title": "Path traversal on /api/catalog/files",
+      "vuln_type": "path_traversal"
+    },
+    {
+      "confidence": 0.55,
+      "cvss": 8.1,
+      "cwe": "CWE-915",
+      "discovered_at": "2026-10-15T15:20:00Z",
+      "endpoint_id": "ep:sso-users",
+      "evidence": "Adding \"role\": \"admin\" to the profile update made the session an admin.",
+      "grants_identity_id": "id:admin",
+      "id": "f:sso-massassign",
+      "status": "confirmed",
+      "technique_id": "mass-assignment",
+      "title": "Role field writable on PATCH /sso/users/me",
+      "vuln_type": "mass_assignment"
+    },
+    {
+      "confidence": 0.45,
+      "cvss": 9.1,
+      "cwe": "CWE-89",
+      "discovered_at": "2026-10-15T13:57:00Z",
+      "endpoint_id": "ep:ad-users",
+      "evidence": "A boolean payload in the search parameter changed the row count.",
+      "id": "f:ad-sqli",
+      "leads_to_asset_id": "asset:customer-db",
+      "status": "confirmed",
+      "technique_id": "sqli",
+      "title": "SQL injection on /admin/users",
+      "vuln_type": "sqli"
+    },
+    {
+      "confidence": 0.5,
+      "cvss": 8.8,
+      "cwe": "CWE-89",
+      "discovered_at": "2026-10-17T05:27:00Z",
+      "endpoint_id": "ep:rp-export",
+      "evidence": "An error-based payload in the report filter leaked the warehouse schema.",
+      "id": "f:rp-sqli",
+      "leads_to_asset_id": "asset:warehouse",
+      "status": "confirmed",
+      "technique_id": "sqli",
+      "title": "SQL injection on /reports/export",
+      "vuln_type": "sqli"
+    },
+    {
+      "confidence": 0.8,
+      "cvss": 7.5,
+      "cwe": "CWE-532",
+      "discovered_at": "2026-10-14T17:35:00Z",
+      "endpoint_id": "ep:ci-logs",
+      "evidence": "A deploy job echoes cloud access keys into build logs readable by any CI user.",
+      "grants_identity_id": "id:cloud-admin",
+      "id": "f:ci-secrets",
+      "status": "confirmed",
+      "technique_id": "secret-exposure",
+      "title": "Cloud credentials printed in CI pipeline logs",
+      "vuln_type": "info_disclosure"
+    },
+    {
+      "confidence": 0.5,
+      "cvss": 9.0,
+      "cwe": "CWE-78",
+      "discovered_at": "2026-10-14T22:09:00Z",
+      "endpoint_id": "ep:jh-console",
+      "evidence": "The host field is passed to a shell; `;id` ran on the jump host.",
+      "id": "f:jh-cmdi",
+      "leads_to_asset_id": "asset:backups",
+      "status": "confirmed",
+      "technique_id": "os-command-injection",
+      "title": "OS command injection in /ops/console",
+      "vuln_type": "rce"
+    }
+  ],
+  "identities": [
+    {
+      "id": "id:anon",
+      "privilege_level": 0,
+      "role": "anonymous"
+    },
+    {
+      "id": "id:customer",
+      "privilege_level": 1,
+      "role": "user"
+    },
+    {
+      "id": "id:support-agent",
+      "privilege_level": 1,
+      "role": "user"
+    },
+    {
+      "id": "id:admin",
+      "privilege_level": 3,
+      "role": "admin"
+    },
+    {
+      "id": "id:ci-bot",
+      "privilege_level": 3,
+      "role": "admin"
+    },
+    {
+      "id": "id:cloud-admin",
+      "privilege_level": 3,
+      "role": "admin"
+    }
+  ]
+}

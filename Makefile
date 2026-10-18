@@ -1,4 +1,4 @@
-.PHONY: up down logs cli ps seed memory demo ui ping
+.PHONY: up down logs cli ps seed seed-large memory demo ui ping
 up:
 	docker compose up -d
 down:
@@ -13,6 +13,8 @@ ping:
 	python scripts/ping.py
 seed:
 	python -m lib.seed_taxonomy --all
+seed-large:
+	CROWNPATH_GRAPH=crownpath_large python -m lib.seed_taxonomy --all --findings data/findings.large.json
 memory:
 	python -m lib.memory --demo
 demo:
