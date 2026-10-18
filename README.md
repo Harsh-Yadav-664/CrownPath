@@ -62,7 +62,8 @@ structured (no LLM extraction needed) and the numbers must be deterministic; see
          or --no-llm deterministic path)  ──► agent/format.py
                                    │
                     ui/app.py (FastAPI) + Cytoscape page
-        /api/graph · /api/paths · /api/chokepoints · /api/changes · /api/agent
+        /api/graph · /api/paths · /api/chokepoints · /api/whatif · /api/changes
+        /api/agent · /api/scope (what was tested, live) · /api/target (docs/target.md)
 ```
 
 **FalkorDB is load-bearing.** There is no in-memory copy of the estate and no path logic

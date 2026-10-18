@@ -10,6 +10,7 @@ import collections
 import concurrent.futures
 import json
 import os
+import re
 import threading
 import time
 
@@ -138,6 +139,120 @@ def get_changes(since: str = "scan-1", until: str = "scan-2", crown_jewel: str =
     if not change["paths"]["until"]:
         return {"available": False, "reason": "no scans recorded"}
     return {"available": True, "headline": memory.headline(change), **change}
+
+
+# --- /api/target, /api/scope: "what was tested" ----------------------------------
+TARGET_DOC_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "target.md")
+
+
+def _plain(markdown):
+    """Markdown -> plain text for UIs that don't render markdown."""
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", markdown)
+    text = re.sub(r"(\*\*|__|`)", "", text)
+    return re.sub(r"^\s*[-*]\s+", "- ", text, flags=re.M).strip()
+
+
+def _target_about():
+    """docs/target.md parsed into {name, description, markdown, sections}: the H1 is the
+    target name, the first paragraph its one-line description, each H2 a section."""
+    with open(TARGET_DOC_PATH, "r", encoding="utf-8") as f:
+        markdown = f.read()
+    name, description, sections, current = None, None, [], None
+    for block in re.split(r"\n\s*\n", markdown.strip()):
+        block = block.strip()
+        if block.startswith("# ") and name is None:
+            name = block[2:].strip()
+        elif block.startswith("## "):
+            current = {"heading": block[3:].strip(), "markdown": ""}
+            sections.append(current)
+        elif current is not None:
+            current["markdown"] = (current["markdown"] + "\n\n" + block).strip()
+        elif description is None:
+            description = _plain(block)
+    for s in sections:
+        s["text"] = _plain(s["markdown"])
+    return {"name": name, "description": description, "markdown": markdown, "sections": sections}
+
+
+@app.get("/api/target")
+def get_target():
+    """The plain-English description of the tested estate (docs/target.md)."""
+    return _target_about()
+
+
+@app.get("/api/scope")
+def get_scope():
+    """What was tested, read live from the graph: assets (with their endpoints), crown
+    jewels, identities and every finding with its type/CWE/CVSS/confidence/status/
+    evidence. `target` carries the docs/target.md text."""
+    g = tools._get_graph()
+
+    endpoints = [
+        {"id": eid, "asset_id": aid, "path": url, "method": method, "auth_required": auth}
+        for eid, aid, url, method, auth in graph.run(
+            g,
+            "MATCH (a:Asset)-[:EXPOSES]->(e:Endpoint) "
+            "RETURN e.id, a.id, e.url, e.method, e.auth_required ORDER BY a.id, e.url, e.id",
+        ).result_set
+    ]
+    by_asset = collections.defaultdict(list)
+    for e in endpoints:
+        by_asset[e["asset_id"]].append(e["id"])
+
+    assets = [
+        {"id": aid, "name": name, "type": atype, "environment": env,
+         "is_crown_jewel": bool(jewel), "value": value, "endpoint_ids": by_asset.get(aid, [])}
+        for aid, name, atype, env, jewel, value in graph.run(
+            g,
+            "MATCH (a:Asset) RETURN a.id, a.name, a.type, a.environment, a.is_crown_jewel, a.value "
+            "ORDER BY a.is_crown_jewel DESC, a.value DESC, a.id",
+        ).result_set
+    ]
+
+    identities = [
+        {"id": iid, "role": role, "privilege_level": level}
+        for iid, role, level in graph.run(
+            g, "MATCH (i:Identity) RETURN i.id, i.role, i.privilege_level ORDER BY i.privilege_level, i.id"
+        ).result_set
+    ]
+
+    findings = [
+        {"id": fid, "title": title, "type": vtype, "technique_id": tid, "cwe": cwe, "cvss": cvss,
+         "confidence": conf, "status": status, "evidence": evidence,
+         "endpoint_id": eid, "endpoint": f"{method} {url}" if url else None, "asset_id": aid}
+        for fid, title, vtype, tid, cwe, cvss, conf, status, evidence, eid, url, method, aid in graph.run(
+            g,
+            """
+            MATCH (f:Finding)
+            OPTIONAL MATCH (e:Endpoint)-[:HAS_FINDING]->(f)
+            OPTIONAL MATCH (a:Asset)-[:EXPOSES]->(e)
+            OPTIONAL MATCH (f)-[:INSTANCE_OF]->(t:Technique)
+            RETURN f.id, f.title, f.vuln_type, t.id, f.cwe, f.cvss, f.confidence, f.status,
+                   f.evidence, e.id, e.url, e.method, a.id
+            ORDER BY a.id, e.url, f.id
+            """,
+        ).result_set
+    ]
+
+    jewels = [{"id": a["id"], "name": a["name"], "value": a["value"]} for a in assets if a["is_crown_jewel"]]
+    return {
+        "target": _target_about(),
+        "graph": graph.graph_name(),
+        "crown_jewels": jewels,
+        "assets": assets,
+        "endpoints": endpoints,
+        "identities": identities,
+        "findings": findings,
+        "counts": {
+            "assets": len(assets),
+            "endpoints": len(endpoints),
+            "anonymous_entry_points": sum(1 for e in endpoints if not e["auth_required"]),
+            "identities": len(identities),
+            "findings": len(findings),
+            "confirmed_findings": sum(1 for f in findings if f["status"] == "confirmed"),
+            "crown_jewels": len(jewels),
+        },
+    }
 
 
 # --- /api/agent: the public agent endpoint (issue #25 / E3) --------------------
