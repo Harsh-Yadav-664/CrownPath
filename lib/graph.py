@@ -19,6 +19,8 @@ except Exception:
 
 from falkordb import FalkorDB
 
+from lib import schema
+
 
 def _as_bool(val, default=False):
     if val is None:
@@ -58,3 +60,24 @@ def connect(ssl=None, connect_timeout=15):
 def run(g, cypher, params=None):
     """Thin wrapper over g.query so every caller goes through one place."""
     return g.query(cypher, params or {})
+
+
+def init_schema(g):
+    """Create a range index on id for every node label in schema.INDEXED.
+
+    Uses `CREATE INDEX FOR (n:Label) ON (n.id)` (verified syntax, BUILD_SPEC §7).
+    FalkorDB has no documented `IF NOT EXISTS`, so each create is wrapped and an
+    'already indexed' error is swallowed. Idempotent: safe to call twice."""
+    for label, prop in schema.INDEXED:
+        try:
+            run(g, f"CREATE INDEX FOR (n:{label}) ON (n.{prop})")
+        except Exception as exc:
+            msg = str(exc).lower()
+            if "already indexed" in msg or "already exists" in msg:
+                continue
+            raise
+
+
+def reset(g):
+    """Delete all nodes/edges in the graph. Does NOT drop indexes."""
+    run(g, "MATCH (n) DETACH DELETE n")
