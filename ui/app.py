@@ -342,7 +342,11 @@ def _run_agent(question, crown_jewel):
             return future.result(timeout=LLM_BUDGET_SECONDS)
         except (Exception, SystemExit):
             pass
-    return _deterministic(crown_jewel)
+    result = _deterministic(crown_jewel)
+    if not result["remediations"]:
+        # A transient empty read must never reach the UI as a blank answer.
+        return _sample_answer("graph returned no paths")
+    return result
 
 
 @app.get("/api/agent")

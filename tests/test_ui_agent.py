@@ -40,3 +40,13 @@ def test_agent_exit_serves_sample(monkeypatch):
     monkeypatch.setattr(ui_app, "_run_agent", exits)
     body = _client().get("/api/agent").json()
     assert body["sample_response"] is True
+
+
+def test_empty_graph_result_serves_sample(monkeypatch):
+    monkeypatch.setattr(ui_app.agent_run, "provider_chain", lambda: [])
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(ui_app, "_deterministic", lambda cj: {"remediations": [], "choke_points": [], "answer": ""})
+    body = _client().get("/api/agent").json()
+    assert body["sample_response"] is True
+    assert "no paths" in body["reason"]
+    assert body["remediations"]
