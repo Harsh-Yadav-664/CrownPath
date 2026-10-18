@@ -57,6 +57,27 @@
     color: var(--jewel);
     font-weight: 600;
   }
+  [hidden] { display: none !important; }
+  #agent-panel {
+    padding: 8px 20px;
+    max-height: 30vh;
+    overflow: auto;
+    border-bottom: 1px solid #2b3045;
+  }
+  #agent-banner {
+    display: inline-block;
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #5c4a14;
+    color: #ffd666;
+    font-size: 12px;
+  }
+  #agent-answer {
+    margin: 0;
+    white-space: pre-wrap;
+    font-size: 12.5px;
+  }
   #cy {
     width: 100%;
     height: calc(100vh - 118px);
@@ -72,7 +93,12 @@
   <button id="trace-btn">Trace attack paths</button>
   <button id="choke-btn" class="secondary">Show choke point</button>
   <button id="reset-btn" class="secondary">Reset view</button>
+  <button id="agent-btn" class="secondary">Ask the agent</button>
   <span id="headline"></span>
+</div>
+<div id="agent-panel" hidden>
+  <div id="agent-banner" hidden></div>
+  <pre id="agent-answer"></pre>
 </div>
 <div id="cy"></div>
 <script>
@@ -191,6 +217,27 @@ async function showChokePoint() {
   document.getElementById("headline").textContent = headline || "";
 }
 
+async function askAgent() {
+  const panel = document.getElementById("agent-panel");
+  const banner = document.getElementById("agent-banner");
+  const out = document.getElementById("agent-answer");
+  panel.hidden = false;
+  banner.hidden = true;
+  out.textContent = "Asking the agent...";
+  try {
+    const res = await fetch(`${API_BASE}/api/agent?crown_jewel=${CROWN_JEWEL}`);
+    const data = await res.json();
+    out.textContent = data.answer || "";
+    if (data.sample_response) {
+      banner.textContent = `Sample response (${data.reason || "recorded run"})`;
+      banner.hidden = false;
+    }
+  } catch (e) {
+    out.textContent = "The agent is unavailable right now. Use the buttons above to explore the graph.";
+  }
+}
+
+document.getElementById("agent-btn").addEventListener("click", askAgent);
 document.getElementById("trace-btn").addEventListener("click", traceAttackPaths);
 document.getElementById("choke-btn").addEventListener("click", showChokePoint);
 document.getElementById("reset-btn").addEventListener("click", clearHighlight);

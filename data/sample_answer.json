@@ -1,0 +1,716 @@
+{
+  "remediations": [
+    {
+      "rank": 1,
+      "finding_id": "f:xss",
+      "title": "Reflected XSS on /search",
+      "reason": "Lies on a length-6 path from GET /search to Customer database (score 12.75).",
+      "cited_path": {
+        "steps": [
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:search",
+            "display": "Endpoint: GET /search"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:xss",
+            "display": "Finding: Reflected XSS on /search"
+          },
+          {
+            "kind": "edge",
+            "label": "GRANTS",
+            "id": "",
+            "display": "GRANTS"
+          },
+          {
+            "kind": "node",
+            "label": "Identity",
+            "id": "id:user",
+            "display": "Identity: user"
+          },
+          {
+            "kind": "edge",
+            "label": "CAN_ACCESS",
+            "id": "",
+            "display": "CAN_ACCESS"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:api",
+            "display": "Asset: Orders API"
+          },
+          {
+            "kind": "edge",
+            "label": "EXPOSES",
+            "id": "",
+            "display": "EXPOSES"
+          },
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:orders",
+            "display": "Endpoint: GET /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:idor",
+            "display": "Finding: IDOR on /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:db",
+            "display": "Asset: Customer database"
+          }
+        ],
+        "length": 6,
+        "score": 12.75,
+        "finding_ids": [
+          "f:xss",
+          "f:idor"
+        ],
+        "crown_jewel_id": "asset:db"
+      }
+    },
+    {
+      "rank": 2,
+      "finding_id": "f:idor",
+      "title": "IDOR on /api/orders",
+      "reason": "Lies on a length-6 path from GET /search to Customer database (score 12.75).",
+      "cited_path": {
+        "steps": [
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:search",
+            "display": "Endpoint: GET /search"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:xss",
+            "display": "Finding: Reflected XSS on /search"
+          },
+          {
+            "kind": "edge",
+            "label": "GRANTS",
+            "id": "",
+            "display": "GRANTS"
+          },
+          {
+            "kind": "node",
+            "label": "Identity",
+            "id": "id:user",
+            "display": "Identity: user"
+          },
+          {
+            "kind": "edge",
+            "label": "CAN_ACCESS",
+            "id": "",
+            "display": "CAN_ACCESS"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:api",
+            "display": "Asset: Orders API"
+          },
+          {
+            "kind": "edge",
+            "label": "EXPOSES",
+            "id": "",
+            "display": "EXPOSES"
+          },
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:orders",
+            "display": "Endpoint: GET /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:idor",
+            "display": "Finding: IDOR on /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:db",
+            "display": "Asset: Customer database"
+          }
+        ],
+        "length": 6,
+        "score": 12.75,
+        "finding_ids": [
+          "f:xss",
+          "f:idor"
+        ],
+        "crown_jewel_id": "asset:db"
+      }
+    },
+    {
+      "rank": 3,
+      "finding_id": "f:authbypass",
+      "title": "Auth bypass on /login",
+      "reason": "Lies on a length-6 path from POST /login to Customer database (score 9.92).",
+      "cited_path": {
+        "steps": [
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:login",
+            "display": "Endpoint: POST /login"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:authbypass",
+            "display": "Finding: Auth bypass on /login"
+          },
+          {
+            "kind": "edge",
+            "label": "GRANTS",
+            "id": "",
+            "display": "GRANTS"
+          },
+          {
+            "kind": "node",
+            "label": "Identity",
+            "id": "id:user",
+            "display": "Identity: user"
+          },
+          {
+            "kind": "edge",
+            "label": "CAN_ACCESS",
+            "id": "",
+            "display": "CAN_ACCESS"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:api",
+            "display": "Asset: Orders API"
+          },
+          {
+            "kind": "edge",
+            "label": "EXPOSES",
+            "id": "",
+            "display": "EXPOSES"
+          },
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:orders",
+            "display": "Endpoint: GET /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:idor",
+            "display": "Finding: IDOR on /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:db",
+            "display": "Asset: Customer database"
+          }
+        ],
+        "length": 6,
+        "score": 9.916666666666666,
+        "finding_ids": [
+          "f:authbypass",
+          "f:idor"
+        ],
+        "crown_jewel_id": "asset:db"
+      }
+    },
+    {
+      "rank": 4,
+      "finding_id": "f:redirect",
+      "title": "Open redirect on /go",
+      "reason": "Lies on a length-6 path from GET /go to Customer database (score 8.50).",
+      "cited_path": {
+        "steps": [
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:go",
+            "display": "Endpoint: GET /go"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:redirect",
+            "display": "Finding: Open redirect on /go"
+          },
+          {
+            "kind": "edge",
+            "label": "GRANTS",
+            "id": "",
+            "display": "GRANTS"
+          },
+          {
+            "kind": "node",
+            "label": "Identity",
+            "id": "id:user",
+            "display": "Identity: user"
+          },
+          {
+            "kind": "edge",
+            "label": "CAN_ACCESS",
+            "id": "",
+            "display": "CAN_ACCESS"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:api",
+            "display": "Asset: Orders API"
+          },
+          {
+            "kind": "edge",
+            "label": "EXPOSES",
+            "id": "",
+            "display": "EXPOSES"
+          },
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:orders",
+            "display": "Endpoint: GET /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:idor",
+            "display": "Finding: IDOR on /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:db",
+            "display": "Asset: Customer database"
+          }
+        ],
+        "length": 6,
+        "score": 8.5,
+        "finding_ids": [
+          "f:redirect",
+          "f:idor"
+        ],
+        "crown_jewel_id": "asset:db"
+      }
+    },
+    {
+      "rank": 5,
+      "finding_id": "f:ssrf",
+      "title": "SSRF on /metrics",
+      "reason": "Lies on a length-6 path from GET /metrics to Customer database (score 7.08).",
+      "cited_path": {
+        "steps": [
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:metrics",
+            "display": "Endpoint: GET /metrics"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:ssrf",
+            "display": "Finding: SSRF on /metrics"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:admin",
+            "display": "Asset: Admin console"
+          },
+          {
+            "kind": "edge",
+            "label": "CONNECTS_TO",
+            "id": "",
+            "display": "CONNECTS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:api",
+            "display": "Asset: Orders API"
+          },
+          {
+            "kind": "edge",
+            "label": "EXPOSES",
+            "id": "",
+            "display": "EXPOSES"
+          },
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:orders",
+            "display": "Endpoint: GET /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:idor",
+            "display": "Finding: IDOR on /api/orders"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:db",
+            "display": "Asset: Customer database"
+          }
+        ],
+        "length": 6,
+        "score": 7.083333333333333,
+        "finding_ids": [
+          "f:ssrf",
+          "f:idor"
+        ],
+        "crown_jewel_id": "asset:db"
+      }
+    },
+    {
+      "rank": 6,
+      "finding_id": "f:massassign",
+      "title": "Mass assignment on /admin",
+      "reason": "Lies on a length-6 path from GET /metrics to Customer database (score 5.00).",
+      "cited_path": {
+        "steps": [
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:metrics",
+            "display": "Endpoint: GET /metrics"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:ssrf",
+            "display": "Finding: SSRF on /metrics"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:admin",
+            "display": "Asset: Admin console"
+          },
+          {
+            "kind": "edge",
+            "label": "EXPOSES",
+            "id": "",
+            "display": "EXPOSES"
+          },
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:adminapi",
+            "display": "Endpoint: GET /admin"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:massassign",
+            "display": "Finding: Mass assignment on /admin"
+          },
+          {
+            "kind": "edge",
+            "label": "GRANTS",
+            "id": "",
+            "display": "GRANTS"
+          },
+          {
+            "kind": "node",
+            "label": "Identity",
+            "id": "id:admin",
+            "display": "Identity: admin"
+          },
+          {
+            "kind": "edge",
+            "label": "CAN_ACCESS",
+            "id": "",
+            "display": "CAN_ACCESS"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:db",
+            "display": "Asset: Customer database"
+          }
+        ],
+        "length": 6,
+        "score": 5.0,
+        "finding_ids": [
+          "f:ssrf",
+          "f:massassign"
+        ],
+        "crown_jewel_id": "asset:db"
+      }
+    },
+    {
+      "rank": 7,
+      "finding_id": "f:sqli",
+      "title": "SQLi on /admin",
+      "reason": "Lies on a length-5 path from GET /metrics to Customer database (score 4.00).",
+      "cited_path": {
+        "steps": [
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:metrics",
+            "display": "Endpoint: GET /metrics"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:ssrf",
+            "display": "Finding: SSRF on /metrics"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:admin",
+            "display": "Asset: Admin console"
+          },
+          {
+            "kind": "edge",
+            "label": "EXPOSES",
+            "id": "",
+            "display": "EXPOSES"
+          },
+          {
+            "kind": "node",
+            "label": "Endpoint",
+            "id": "ep:adminapi",
+            "display": "Endpoint: GET /admin"
+          },
+          {
+            "kind": "edge",
+            "label": "HAS_FINDING",
+            "id": "",
+            "display": "HAS_FINDING"
+          },
+          {
+            "kind": "node",
+            "label": "Finding",
+            "id": "f:sqli",
+            "display": "Finding: SQLi on /admin"
+          },
+          {
+            "kind": "edge",
+            "label": "LEADS_TO",
+            "id": "",
+            "display": "LEADS_TO"
+          },
+          {
+            "kind": "node",
+            "label": "Asset",
+            "id": "asset:db",
+            "display": "Asset: Customer database"
+          }
+        ],
+        "length": 5,
+        "score": 4.0,
+        "finding_ids": [
+          "f:ssrf",
+          "f:sqli"
+        ],
+        "crown_jewel_id": "asset:db"
+      }
+    }
+  ],
+  "choke_points": [
+    {
+      "finding_id": "f:idor",
+      "title": "IDOR on /api/orders",
+      "paths_severed": 4,
+      "paths_total": 6,
+      "severs_highest_value": true,
+      "highest_value_path_score": 12.75
+    },
+    {
+      "finding_id": "f:ssrf",
+      "title": "SSRF on /metrics",
+      "paths_severed": 3,
+      "paths_total": 6,
+      "severs_highest_value": false,
+      "highest_value_path_score": 0.0
+    },
+    {
+      "finding_id": "f:xss",
+      "title": "Reflected XSS on /search",
+      "paths_severed": 1,
+      "paths_total": 6,
+      "severs_highest_value": true,
+      "highest_value_path_score": 12.75
+    },
+    {
+      "finding_id": "f:authbypass",
+      "title": "Auth bypass on /login",
+      "paths_severed": 1,
+      "paths_total": 6,
+      "severs_highest_value": false,
+      "highest_value_path_score": 0.0
+    },
+    {
+      "finding_id": "f:redirect",
+      "title": "Open redirect on /go",
+      "paths_severed": 1,
+      "paths_total": 6,
+      "severs_highest_value": false,
+      "highest_value_path_score": 0.0
+    },
+    {
+      "finding_id": "f:massassign",
+      "title": "Mass assignment on /admin",
+      "paths_severed": 1,
+      "paths_total": 6,
+      "severs_highest_value": false,
+      "highest_value_path_score": 0.0
+    },
+    {
+      "finding_id": "f:sqli",
+      "title": "SQLi on /admin",
+      "paths_severed": 1,
+      "paths_total": 6,
+      "severs_highest_value": false,
+      "highest_value_path_score": 0.0
+    }
+  ],
+  "answer": "## What to fix first\n\n1. **Reflected XSS on /search** -- Lies on a length-6 path from GET /search to Customer database (score 12.75).\n   Path: ep:search -> (HAS_FINDING) -> f:xss -> (GRANTS) -> id:user -> (CAN_ACCESS) -> asset:api -> (EXPOSES) -> ep:orders -> (HAS_FINDING) -> f:idor -> (LEADS_TO) -> asset:db\n   Contextual output encoding for every sink, a strict Content-Security-Policy, HttpOnly cookies, and framework auto-escaping; sanitise HTML with a vetted library.\n\n2. **IDOR on /api/orders** -- Lies on a length-6 path from GET /search to Customer database (score 12.75).\n   Path: ep:search -> (HAS_FINDING) -> f:xss -> (GRANTS) -> id:user -> (CAN_ACCESS) -> asset:api -> (EXPOSES) -> ep:orders -> (HAS_FINDING) -> f:idor -> (LEADS_TO) -> asset:db\n   Enforce object-level authorization on every access (the resource must belong to the caller); use unguessable references and check ownership server-side.\n\n3. **Auth bypass on /login** -- Lies on a length-6 path from POST /login to Customer database (score 9.92).\n   Path: ep:login -> (HAS_FINDING) -> f:authbypass -> (GRANTS) -> id:user -> (CAN_ACCESS) -> asset:api -> (EXPOSES) -> ep:orders -> (HAS_FINDING) -> f:idor -> (LEADS_TO) -> asset:db\n   Enforce function-level authorization server-side on every privileged action (deny-by-default); never rely on UI hiding. Verify role on the endpoint, not the client.\n\n4. **Open redirect on /go** -- Lies on a length-6 path from GET /go to Customer database (score 8.50).\n   Path: ep:go -> (HAS_FINDING) -> f:redirect -> (GRANTS) -> id:user -> (CAN_ACCESS) -> asset:api -> (EXPOSES) -> ep:orders -> (HAS_FINDING) -> f:idor -> (LEADS_TO) -> asset:db\n   Use an allow-list of redirect targets or relative paths only; never redirect to a user-supplied absolute URL.\n\n5. **SSRF on /metrics** -- Lies on a length-6 path from GET /metrics to Customer database (score 7.08).\n   Path: ep:metrics -> (HAS_FINDING) -> f:ssrf -> (LEADS_TO) -> asset:admin -> (CONNECTS_TO) -> asset:api -> (EXPOSES) -> ep:orders -> (HAS_FINDING) -> f:idor -> (LEADS_TO) -> asset:db\n   Enforce an egress allow-list, resolve-and-pin destinations, block link-local/metadata ranges, disable unused URL schemes, and enforce IMDSv2.\n\n6. **Mass assignment on /admin** -- Lies on a length-6 path from GET /metrics to Customer database (score 5.00).\n   Path: ep:metrics -> (HAS_FINDING) -> f:ssrf -> (LEADS_TO) -> asset:admin -> (EXPOSES) -> ep:adminapi -> (HAS_FINDING) -> f:massassign -> (GRANTS) -> id:admin -> (CAN_ACCESS) -> asset:db\n   Bind only an explicit allow-list of fields to models; never auto-bind request bodies to privileged attributes (role, isAdmin, price).\n\n7. **SQLi on /admin** -- Lies on a length-5 path from GET /metrics to Customer database (score 4.00).\n   Path: ep:metrics -> (HAS_FINDING) -> f:ssrf -> (LEADS_TO) -> asset:admin -> (EXPOSES) -> ep:adminapi -> (HAS_FINDING) -> f:sqli -> (LEADS_TO) -> asset:db\n   Use parameterised queries / prepared statements everywhere; never concatenate input into SQL; apply least-privilege DB accounts.\n\n## Choke point\nFix **IDOR on /api/orders** -> severs **4 of 6** paths to Customer database, including the highest-value one."
+}

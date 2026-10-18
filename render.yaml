@@ -1,0 +1,33 @@
+# Render blueprint for the CrownPath live demo (issue #25). Secrets are declared with
+# sync: false so they are entered in the Render dashboard and never live in this repo.
+services:
+  - type: web
+    name: crownpath
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn ui.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: FALKORDB_HOST
+        sync: false
+      - key: FALKORDB_PORT
+        sync: false
+      - key: FALKORDB_USERNAME
+        sync: false
+      - key: FALKORDB_PASSWORD
+        sync: false
+      - key: FALKORDB_SSL
+        sync: false
+      - key: CROWNPATH_GRAPH
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CROWNPATH_MODEL
+        sync: false
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
