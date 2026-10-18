@@ -1,0 +1,24 @@
+{"from":"open-redirect","to":"oauth-token-theft","gain":"control of the victim's landing origin","precondition":["oauth_flow"],"impact_multiplier":2.0,"refs":["oauth-redirect-uri"]}
+{"from":"ssrf","to":"cloud-metadata-creds","gain":"server-originated request to the metadata endpoint","precondition":["cloud_hosted"],"impact_multiplier":2.0,"refs":["ssrf-metadata"]}
+{"from":"cloud-metadata-creds","to":"account-takeover","gain":"IAM credentials for the cloud account","precondition":[],"impact_multiplier":1.5,"refs":[]}
+{"from":"idor","to":"mass-extraction","gain":"bulk read of foreign objects","precondition":["sequential_ids"],"impact_multiplier":1.8,"refs":[]}
+{"from":"mass-assignment","to":"privilege-escalation","gain":"ability to set role / is_admin","precondition":["role_field"],"impact_multiplier":1.8,"refs":[]}
+{"from":"host-header","to":"account-takeover","gain":"poisoned password-reset link","precondition":["password_reset_flow"],"impact_multiplier":1.6,"refs":[]}
+{"from":"xss-reflected","to":"stored-mass-xss","gain":"a cacheable injection point serving all users","precondition":["cache_headers"],"impact_multiplier":1.7,"refs":["cache-poisoning"]}
+{"from":"secret-in-js","to":"api-access","gain":"a live credential to the backend API","precondition":[],"impact_multiplier":1.5,"refs":[]}
+{"from":"subdomain-takeover","to":"session-theft","gain":"a same-site host under attacker control","precondition":["cookie_domain_wildcard"],"impact_multiplier":1.4,"refs":[]}
+{"from":"exposed-git","to":"authz-bypass","gain":"server source code to review for missing checks","precondition":[],"impact_multiplier":1.5,"refs":[]}
+{"from":"graphql-introspection","to":"graphql-field-authz","gain":"the full schema to probe hidden privileged mutations","precondition":[],"impact_multiplier":1.3,"refs":[]}
+{"from":"exposed-swagger","to":"idor","gain":"the full endpoint and id-scheme map","precondition":[],"impact_multiplier":1.2,"refs":[]}
+{"from":"config-exposure","to":"secret-exposure","gain":"recovered config/source to grep for credentials","precondition":[],"impact_multiplier":1.4,"refs":[]}
+{"from":"cloud-storage-exposure","to":"secret-exposure","gain":"readable objects that may hold dumps or keys","precondition":[],"impact_multiplier":1.3,"refs":[]}
+{"from":"ssti","to":"rce","gain":"template evaluation escalates to code execution","precondition":[],"impact_multiplier":1.6,"refs":[]}
+{"from":"command-injection","to":"rce","gain":"direct command execution","precondition":[],"impact_multiplier":1.5,"refs":[]}
+{"from":"file-upload","to":"rce","gain":"an executable file in a known webroot","precondition":["known_webroot"],"impact_multiplier":1.6,"refs":[]}
+{"from":"deserialization","to":"rce","gain":"gadget-chain execution","precondition":[],"impact_multiplier":1.6,"refs":[]}
+{"from":"path-traversal","to":"secret-exposure","gain":"read source/config to harvest credentials","precondition":[],"impact_multiplier":1.4,"refs":[]}
+{"from":"sqli","to":"secret-exposure","gain":"read credentials/hashes (schema proof only, no dump)","precondition":[],"impact_multiplier":1.5,"refs":[]}
+{"from":"oauth","to":"account-takeover","gain":"authorization-code or token theft","precondition":["open-redirect"],"impact_multiplier":1.8,"refs":[]}
+{"from":"bfla","to":"privilege-escalation","gain":"an admin action performed as a low-priv user","precondition":[],"impact_multiplier":1.6,"refs":[]}
+{"from":"xss","to":"session-theft","gain":"script execution in a victim session","precondition":[],"impact_multiplier":1.5,"refs":[]}
+{"from":"cache-poisoning","to":"stored-mass-xss","gain":"a cached payload served to all users","precondition":[],"impact_multiplier":1.8,"refs":[]}

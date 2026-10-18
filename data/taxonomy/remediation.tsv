@@ -1,0 +1,45 @@
+# class<TAB>remediation  — one row per weakness class (#245). Rendered per finding into
+# report/report.md and SARIF `help`. "TBD" where remediation is genuinely context-specific.
+actuator-exposure	Restrict Spring Boot Actuator endpoints: expose only /health, bind management to an internal port, and require authentication (management.endpoints.web.exposure.include, Spring Security).
+api-doc-exposure	Do not serve Swagger/OpenAPI/GraphQL schema publicly in production; gate behind auth or disable, and treat any leaked endpoints as attack surface to review.
+bfla	Enforce function-level authorization server-side on every privileged action (deny-by-default); never rely on UI hiding. Verify role on the endpoint, not the client.
+cache-deception	Normalise/deny caching of authenticated responses; make the cache key include auth state; reject path-confusion (e.g. /account/foo.css) at the origin.
+cache-poisoning	Include every request input that affects the response in the cache key, or strip unkeyed inputs (X-Forwarded-Host, etc.) before caching.
+clickjacking	Send Content-Security-Policy: frame-ancestors 'self' (or specific origins) and X-Frame-Options on all sensitive pages.
+cloud-storage-exposure	Make buckets private by default; block public ACLs/policies; enable public-access-block; audit with least-privilege IAM.
+command-injection	Never pass user input to a shell; use parameterised APIs (execFile with an arg array), strict allow-lists, and drop shell metacharacters.
+config-exposure	Remove exposed config/backup/.env files from web roots; deny dotfiles and backups at the server; rotate any leaked secrets.
+cors	Do not reflect arbitrary Origin with credentials; use a strict allow-list of origins and never combine Access-Control-Allow-Origin:* with credentials.
+crlf	Reject/encode CR and LF in any value written to response headers; use framework header APIs that forbid injection.
+default-credentials	Change all default/admin credentials, enforce a strong-password policy, and disable or firewall default management interfaces.
+deserialization	Do not deserialise untrusted data; use data-only formats (JSON) with schemas; if unavoidable, enforce allow-listed types and integrity (signed payloads).
+dir-listing	Disable directory listing (Options -Indexes / autoindex off) and return 404 for directories without an index.
+dns-takeover	Remove dangling NS/CNAME records pointing to unclaimed providers; monitor DNS for stale delegations.
+exposed-panel	Restrict admin/login panels to trusted networks or VPN, add authentication + rate limiting, and avoid predictable paths.
+file-upload	Validate type by content (not extension), store outside the web root, randomise names, disable execution in the upload dir, and scan uploads.
+graphql	Disable introspection in production, enforce field-level authorization, add query depth/complexity limits and rate limiting.
+host-header	Validate the Host header against an allow-list; do not build absolute URLs (password-reset links, cache keys) from the untrusted Host.
+idor	Enforce object-level authorization on every access (the resource must belong to the caller); use unguessable references and check ownership server-side.
+jwt	Pin the algorithm server-side (reject 'none' and alg confusion), verify signature with a strong key, validate exp/aud/iss, and rotate keys.
+known-cve	Patch/upgrade the affected component to a fixed version; where patching lags, apply the vendor mitigation and virtual patching at the WAF.
+logic	Enforce business invariants server-side (state transitions, quantities, ownership); add idempotency and server-side validation of every step.
+mass-assignment	Bind only an explicit allow-list of fields to models; never auto-bind request bodies to privileged attributes (role, isAdmin, price).
+nosqli	Use parameterised queries/typed schemas; reject query operators in user input; validate types (a string is not an object).
+oauth	Strictly validate redirect_uri against an exact allow-list, use state/PKCE, bind tokens to the client, and never expose tokens via open redirects.
+open-redirect	Use an allow-list of redirect targets or relative paths only; never redirect to a user-supplied absolute URL.
+password-reset	Use single-use, expiring, high-entropy tokens bound to the account; do not leak tokens; validate the reset belongs to the requesting user; don't build links from the Host header.
+path-traversal	Canonicalise and confine paths to a base directory (reject ../ and encodings); prefer opaque IDs over filesystem paths; least-privilege file access.
+prototype-pollution	Reject __proto__/constructor/prototype keys in user input; use Map or Object.create(null); freeze prototypes; update vulnerable libraries.
+race	Use atomic operations / row locks / idempotency keys for state-changing actions; do not check-then-act without a transaction.
+request-smuggling	Normalise/deny ambiguous Content-Length vs Transfer-Encoding; use HTTP/2 end-to-end or a front-end that rejects conflicting framing.
+saml	Verify the SAML signature over the full assertion, reject unsigned/wrapped assertions (XSW), validate audience/recipient/conditions, and pin the IdP cert.
+secret-exposure	Rotate the leaked secret immediately, remove it from client/JS bundles, move secrets server-side, and add secret scanning to CI.
+session	Use secure, HttpOnly, SameSite cookies; regenerate the session id on login; expire and invalidate on logout; bind sessions to context.
+source-exposure	Remove exposed .git/.svn/source maps/backups from production; deny them at the server; rotate any secrets found in recovered source.
+sqli	Use parameterised queries / prepared statements everywhere; never concatenate input into SQL; apply least-privilege DB accounts.
+ssrf	Enforce an egress allow-list, resolve-and-pin destinations, block link-local/metadata ranges, disable unused URL schemes, and enforce IMDSv2.
+ssti	Never render user input as a template; pass user data as template variables, not template source; sandbox the engine and update it.
+subdomain-takeover	Remove dangling CNAMEs to unclaimed services or reclaim the resource; monitor DNS for stale third-party pointers.
+websocket	Validate the Origin on the WebSocket handshake, authenticate/authorize per message, and do not trust cross-origin connections (CSWSH).
+xss	Contextual output encoding for every sink, a strict Content-Security-Policy, HttpOnly cookies, and framework auto-escaping; sanitise HTML with a vetted library.
+xxe	Disable external entities and DTD processing in the XML parser (FEATURE_SECURE_PROCESSING / disallow-doctype-decl); prefer non-XML formats.

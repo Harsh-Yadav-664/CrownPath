@@ -1,0 +1,47 @@
+{"slug": "sql-injection", "aliases": ["sqli"], "agent": "sql-injection", "routed": true, "challenge": "boolean", "cvss": 9.0}
+{"slug": "nosql-injection", "aliases": ["nosqli"], "agent": "nosql-injection", "routed": true, "challenge": "boolean"}
+{"slug": "ssti", "aliases": [], "agent": "ssti", "routed": true, "challenge": "value", "cvss": 9.0}
+{"slug": "os-command-injection", "aliases": ["cmdi", "command-injection"], "agent": "os-command-injection", "routed": true, "challenge": "value", "cvss": 9.8}
+{"slug": "xss", "aliases": [], "agent": "xss", "routed": true, "challenge": "value", "cvss": 6.1}
+{"slug": "ssrf", "aliases": [], "agent": "ssrf", "routed": true, "challenge": "value", "cvss": 8.0}
+{"slug": "xxe", "aliases": [], "agent": "xxe", "routed": true, "challenge": "value", "cvss": 8.2}
+{"slug": "path-traversal-lfi-rfi", "aliases": ["path-traversal", "lfi", "rfi"], "agent": "path-traversal-lfi-rfi", "routed": true, "challenge": "value", "cvss": 7.5}
+{"slug": "idor-bola", "aliases": ["idor", "bola"], "agent": "idor-bola", "routed": true, "challenge": "value", "cvss": 7.1}
+{"slug": "bfla", "aliases": [], "agent": "bfla", "routed": true, "cvss": 7.1}
+{"slug": "mass-assignment", "aliases": [], "agent": "mass-assignment", "routed": true, "challenge": "value", "cvss": 6.5}
+{"slug": "prototype-pollution", "aliases": [], "agent": "prototype-pollution", "routed": true, "challenge": "value"}
+{"slug": "race-conditions", "aliases": ["race"], "agent": "race-conditions", "routed": true, "challenge": "value"}
+{"slug": "business-logic", "aliases": ["logic"], "agent": "business-logic", "routed": true}
+{"slug": "csrf", "aliases": [], "agent": "csrf", "routed": true, "challenge": "value", "cvss": 6.5}
+{"slug": "open-redirect", "aliases": ["redirect"], "agent": "open-redirect", "routed": true, "challenge": "value", "cvss": 5.0}
+{"slug": "host-header-injection", "aliases": ["host-header"], "agent": "host-header-injection", "routed": true}
+{"slug": "jwt-auth", "aliases": ["jwt", "jwt-weak"], "agent": "jwt-auth", "routed": true, "cvss": 7.0}
+{"slug": "weak-password-reset", "aliases": ["password-reset"], "agent": "weak-password-reset", "routed": true}
+{"slug": "information-disclosure", "aliases": [], "agent": "analysis-correlation", "routed": true, "cvss": 5.0}
+{"slug": "insecure-file-upload", "aliases": ["file-upload", "upload"], "agent": "insecure-file-upload", "routed": true}
+{"slug": "graphql-abuse", "aliases": ["graphql"], "agent": "graphql-abuse", "routed": true}
+{"slug": "llm-prompt-injection", "aliases": [], "agent": "llm-prompt-injection", "routed": true}
+{"slug": "insecure-deserialization", "aliases": ["deserialization"], "agent": "insecure-deserialization", "routed": true, "cvss": 9.0}
+{"slug": "subdomain-takeover", "aliases": ["dns-takeover"], "agent": "cloud-enum", "routed": true, "cvss": 7.0}
+{"slug": "http-request-smuggling", "aliases": ["request-smuggling"], "agent": "http-request-smuggling", "routed": true, "cvss": 7.5}
+{"slug": "cors", "aliases": [], "agent": "cors", "routed": true, "cvss": 5.0}
+{"slug": "crlf", "aliases": [], "agent": "validation", "routed": false}
+{"slug": "clickjacking", "aliases": [], "agent": "validation", "routed": true}
+{"slug": "cache-poisoning", "aliases": [], "agent": "validation", "routed": false}
+{"slug": "cache-deception", "aliases": [], "agent": "validation", "routed": false}
+{"slug": "oauth", "aliases": [], "agent": "validation", "routed": false}
+{"slug": "saml", "aliases": [], "agent": "validation", "routed": false}
+{"slug": "session", "aliases": [], "agent": "validation", "routed": false}
+{"slug": "websocket", "aliases": [], "agent": "validation", "routed": false}
+{"slug": "known-cve", "aliases": [], "agent": "nuclei-hunter", "routed": false}
+{"slug": "exposed-panel", "aliases": [], "agent": "nuclei-hunter", "routed": false}
+{"slug": "default-credentials", "aliases": [], "agent": "nuclei-hunter", "routed": false}
+{"slug": "actuator-exposure", "aliases": [], "agent": "nuclei-hunter", "routed": false}
+{"slug": "api-doc-exposure", "aliases": [], "agent": "nuclei-hunter", "routed": false}
+{"slug": "dir-listing", "aliases": [], "agent": "nuclei-hunter", "routed": false}
+{"slug": "config-exposure", "aliases": [], "agent": "source-review", "routed": false}
+{"slug": "source-exposure", "aliases": [], "agent": "source-review", "routed": false}
+{"slug": "secret-exposure", "aliases": [], "agent": "source-review", "routed": false}
+{"slug": "cloud-storage-exposure", "aliases": [], "agent": "cloud-enum", "routed": false}
+{"slug": "security-headers", "aliases": [], "agent": "validation", "routed": true}
+{"slug": "tls-misconfiguration", "aliases": [], "agent": "validation", "routed": true}
