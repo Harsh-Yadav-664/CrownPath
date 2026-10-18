@@ -3,6 +3,53 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 (21:00 IST) — scope API, larger estate, demo script (data/backend/docs only)
+`ui/static/index.html`, `lib/schema.py`, the tool signatures and the path/choke-point Cypher are
+untouched. Full suite 39/39 on `crownpath_test`.
+DONE:
+  - **`/api/scope` + `/api/target` + `docs/target.md`** (`c350cf8`). `/api/scope` reads the estate live
+    from whatever graph the app points at: `target` (parsed from docs/target.md: name, one-line
+    description, sections as markdown + plain text), `crown_jewels`, `assets` (with `endpoint_ids`),
+    `endpoints` (`path`, `method`, `auth_required`), `identities`, `findings` (`type`, `technique_id`,
+    `cwe`, `cvss`, `confidence`, `status`, `evidence`, `endpoint`, `asset_id`) and `counts`.
+    `/api/target` returns just the doc. On the demo: 4 assets, 6 endpoints (4 anonymous),
+    8 findings (7 confirmed), 1 crown jewel (Customer database, 100). ~1.8 s against Cloud.
+    **For the UI session:**
+    - `evidence` is `null` for all 8 demo findings: `data/findings.json` has no evidence field, and
+      adding one would break the byte-identical demo. The captured and large datasets do carry evidence.
+    - The target is named "Acme Shop" with the description "a synthetic e-commerce app we
+      modelled ourselves". The brief said "self-hosted", but the synthetic estate isn't hosted
+      anywhere; only the loopback capture app is.
+    Tests: `tests/test_ui_scope.py`.
+  - **`--scenario large`** (`f9c396a`, `3e2c405`): `data/findings.large.json`. 20 assets in three tiers,
+    6 identities, 25 endpoints, 22 findings (2 inconclusive, 1 refuted, some confirmed but
+    unreachable) and 3 crown jewels. Topology is written out by hand so every chain is explainable;
+    the seeded RNG only sets `discovered_at`, so output is byte-identical. The frozen demo and
+    regress outputs were verified byte-identical before and after. Load with `make seed-large`
+    (graph `crownpath_large`, already loaded on Cloud). Verified live, matching an offline simulation:
+    - Customer database: 7 paths; IDOR and SSO mass-assignment tie at 3 (IDOR ranks first on score).
+    - Payment card vault: 5 paths, insecure deserialization on all **5 of 5**.
+    - Cloud secrets manager: 2 paths.
+    - The 9.8 staging RCE and the 8.8 CMS upload are on no path.
+    Each query runs in under a second. Tests: `tests/test_large_scenario.py`, which also re-checks the demo's
+    byte identity. Its comparisons normalise CRLF, so they pass on Windows `autocrlf` checkouts
+    (verified with a CRLF clone).
+  - **`docs/demo-script.md`** (`e378cec`) rewritten for the redesigned UI: 6 beats, ~3:05, with the
+    exact line to say, what to click, and the on-screen text to expect at each beat. Beat 6 is
+    verified: `CROWNPATH_GRAPH=crownpath_captured python -m agent.run --no-llm --crown-jewel
+    asset:lab-db` prints "Fix SQL injection on /item -> severs 1 of 2 paths to Lab customer store".
+    A fresh loopback capture also confirmed 4 findings; it was written to scratch, so the
+    committed `data/findings.captured.json` is unchanged. Graph `crownpath_captured` is pre-loaded on Cloud.
+FLAG (not changed, because it writes to the live graph): **the live `crownpath` graph has no scan
+  history.** Every `Finding.scans` is null, so the live "What changed?" button reports "No
+  regressions between scan-1 and scan-2 ... 6 -> 6" instead of the Track 02 story (2 -> 6, IDOR
+  added). `docs/deploy.md` says the deploy seed is `python -m lib.memory --demo`; it looks like the graph was
+  later reloaded with `seed_taxonomy --all`. A human should run `python -m lib.memory --demo` against
+  the live instance (it reloads the same frozen demo plus both scans), then check `/api/changes`.
+STILL BLOCKED (from the 20:15 entry): the deploy fork `harshiit-rana/CrownPath` is still at `6a0da50`,
+  now 6 commits behind main, so the UI redesign, `/api/scope` and `/api/target` are not live yet.
+  Fix: **Sync fork** on GitHub, then Render deploys (or use Manual Deploy).
+
 ## 2026-10-18 (20:15 IST) — UI clarity redesign: lead with the answer (`737e098`)
 DONE (presentation only; `ui/static/index.html` is the only file changed. Schema, tool
 signatures, Cypher and `ui/app.py` are untouched):
