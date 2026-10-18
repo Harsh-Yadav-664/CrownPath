@@ -162,12 +162,17 @@ def seed(g):
 
 
 def load_all(g, findings_path="data/findings.json"):
-    """Canonical load order: init_schema -> seed taxonomy -> ingest findings."""
+    """Canonical load order: reset -> init_schema -> seed taxonomy -> ingest findings.
+
+    ingest() is called with reset=False: the reset happens once, up front, here --
+    otherwise ingest()'s default reset=True would wipe the Technique/CHAINS_TO nodes
+    seed() just created."""
     from lib import ingest  # local import: avoids an import cycle with lib.ingest
 
+    graph.reset(g)
     graph.init_schema(g)
     seed_result = seed(g)
-    ingest_result = ingest.ingest(g, findings_path)
+    ingest_result = ingest.ingest(g, findings_path, reset=False)
     return {"seed": seed_result, "ingest": ingest_result}
 
 
