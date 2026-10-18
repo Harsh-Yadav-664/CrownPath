@@ -39,9 +39,11 @@ def test_ingest_find_shortest_rank_and_choke_points_gap():
         assert r["cited_path"]["steps"]  # non-empty cited path
         assert "cvss" not in r["reason"].lower()
 
-    # choke_points is a temporary gap tracked by #21/D2
-    with pytest.raises(NotImplementedError):
-        tools.choke_points("asset:db")
+    # choke_points: wired up by #21/D2 (lib/chokepoints.py)
+    cps = tools.choke_points("asset:db")
+    assert cps[0]["finding_id"] == "f:idor"
+    assert cps[0]["paths_severed"] == 4
+    assert cps[0]["paths_total"] == 6
 
     from lib import graph
     graph.reset(tools._get_graph())
