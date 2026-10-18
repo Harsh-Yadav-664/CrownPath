@@ -209,24 +209,39 @@ def provider_chain():
     return chain
 
 
+# A provider that just failed (typically a free-tier 429) is skipped for this many seconds,
+# so a public endpoint does not pay for a doomed call on every request.
+PROVIDER_COOLDOWN_SECONDS = 120
+_cooldown_until = {}
+
+
 def run_with_provider_chain(question, crown_jewel_id="asset:db", findings_path="data/findings.json"):
     """Try each configured provider in order; returns (answer, provider_name).
     Raises the last error if every provider fails (callers then fall back to the
     deterministic path or the recorded sample)."""
+    import time
+
     import openai
 
     last_error = None
     for cfg in provider_chain():
+        if _cooldown_until.get(cfg["name"], 0) > time.monotonic():
+            continue
         try:
-            client = openai.OpenAI(base_url=cfg["base_url"], api_key=cfg["api_key"], timeout=60)
+            # max_retries=0: the SDK's own 429 backoff can burn a minute; this chain
+            # does the failing-over itself.
+            client = openai.OpenAI(
+                base_url=cfg["base_url"], api_key=cfg["api_key"], timeout=30, max_retries=0
+            )
             answer = run_with_provider_llm(
                 question, crown_jewel_id, findings_path, client=client, model=cfg["model"]
             )
             return answer, cfg["name"]
         except Exception as exc:  # next provider; never log the key
             last_error = exc
+            _cooldown_until[cfg["name"]] = time.monotonic() + PROVIDER_COOLDOWN_SECONDS
             print(f"agent: provider {cfg['name']} failed ({type(exc).__name__}); trying next", file=sys.stderr)
-    raise last_error or RuntimeError("no LLM provider configured")
+    raise last_error or RuntimeError("no LLM provider available (all cooling down or unconfigured)")
 
 
 def run_with_provider_llm(question, crown_jewel_id="asset:db", findings_path="data/findings.json", client=None, model=None):

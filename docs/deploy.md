@@ -46,8 +46,13 @@ cp agent/last_answer.json data/sample_answer.json
 5. Seed the Cloud graph once, from any machine whose `.env` points at the same instance:
 
    ```bash
-   python -m lib.seed_taxonomy --all
+   python -m lib.memory --demo
    ```
+
+   (This loads the taxonomy plus two dated scans; scan-2 is the frozen demo, so the headline
+   numbers are identical, and the "What changed?" button works. Plain
+   `python -m lib.seed_taxonomy --all` also works but records no scan history, so that button
+   would report "no regressions".)
 
    The deployed app only reads the graph. **Do not run `pytest` with the production
    graph name** -- the tests call `graph.reset()`; use `CROWNPATH_GRAPH=crownpath_test`.

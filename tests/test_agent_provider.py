@@ -107,6 +107,7 @@ def test_run_with_provider_llm_raises_without_api_key(monkeypatch):
 
 
 def test_provider_chain_order_and_fallback(monkeypatch):
+    agent_run._cooldown_until.clear()
     for var in ("LLM_API_KEY", "LLM_BASE_URL"):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("GEMINI_API_KEY", "g-key")
@@ -125,3 +126,11 @@ def test_provider_chain_order_and_fallback(monkeypatch):
     answer, provider = agent_run.run_with_provider_chain("q")
     assert (answer, provider) == ("answer", "groq")
     assert calls == ["gemini-2.5-flash", "openai/gpt-oss-120b"]
+
+    # the provider that failed is now cooling down and is skipped on the next call
+    calls.clear()
+    monkeypatch.setattr(agent_run, "run_with_provider_llm",
+                        lambda *a, **k: (calls.append(k["model"]), "again")[1])
+    assert agent_run.run_with_provider_chain("q")[1] == "groq"
+    assert calls == ["openai/gpt-oss-120b"]
+    agent_run._cooldown_until.clear()
