@@ -3,6 +3,47 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — Issues #21, #19, #18 (Sonnet session, continued): D2/C3/C2 — Epic C done
+DONE:
+  - #21 (D2): lib/chokepoints.py — `choke_points(g, crown_jewel_id)` (primary, deterministic:
+    path-occurrence count) + `betweenness_cross_check(g)` (secondary, logged only) + `headline()`.
+    Confirmed live: f:idor top, 4/6, severs_highest_value=True, headline string matches exactly.
+    **Note on the betweenness cross-check:** on the demo graph it does NOT rank f:idor top among
+    Findings (whole-graph betweenness is a different signal from "how many crown-jewel paths
+    pass through this node" — f:idor is 5th of 8 Findings by betweenness, f:ssrf is highest).
+    This matches the issue's own "never overrides, corroboration only" framing, so
+    tests/test_chokepoints.py asserts only that the cross-check runs and returns scores, not
+    that it agrees with the path-count ranking. Wired `lib.tools.choke_points` end-to-end (no
+    code change needed there — it already delegated dynamically); the #17 temporary-gap
+    try/except is now dead code on the happy path but left in place as a defensive guard.
+  - #19 (C3): agent/prompts/system.md (forbids CVSS-first justification, mandates
+    path+choke-point reasoning, exact output format) + agent/format.py
+    (`format_answer(remediations, chokepoints)`). Pulls fix text from data/taxonomy/remediation.tsv
+    keyed by technique_id (read from data/findings.json, since Remediation/ChokePoint TypedDicts
+    don't carry vuln_type — kept the frozen #6 shapes untouched). Renders arrow-chain paths.
+    Switched all arrows/dashes to ASCII (`->`, `--`) instead of Unicode (`→`/`—`) after
+    hitting `UnicodeEncodeError` printing to a Windows cp1252 console — do the same in any new
+    console-facing text in this repo. Confirmed output names IDOR as choke point with "4 of 6".
+  - #18 (C2): agent/run.py — `run_no_llm()` (deterministic, calls tools.rank_by_reachability +
+    tools.choke_points + format.format_answer directly) and `run_with_llm()` (Anthropic tool-use
+    loop, 5 tools registered from the #6 signatures, max 8 iterations, default model
+    `claude-sonnet-5-5` overridable via `CROWNPATH_MODEL`). CLI verified live:
+    `python -m agent.run --no-llm --crown-jewel asset:db` prints the full ranked list + choke
+    point and writes agent/last_answer.json (gitignored — regenerated output, not source).
+    **Not verified: the LLM path** — no `ANTHROPIC_API_KEY` available in this session/environment.
+    The tool-use loop follows the standard Anthropic SDK pattern (register tools -> execute ->
+    feed tool_result back -> loop until stop_reason != "tool_use") but has not been run against
+    a live model. Whoever has a key should smoke-test `python -m agent.run` (no flags) once.
+  - 14/14 tests pass live against FalkorDB Cloud.
+NEXT: Epic C is done. Epic D remaining: #20 (D1 MCP server, P1), #22 (D3 UI, P1). Epic E (P2):
+  #23 (Graphiti memory/Track 02), #24 (loopback capture), #25 (live deployment). Epic F
+  (submission, P0, mostly human-owned): #26 (README finalize — can now cite the real 7a/7b/7c
+  queries and the agent output), #27 (demo video), #28 (blog post), #29 (submit). Epic G: #30
+  (fresh-clone, teammate-owned), #31 (rules audit).
+BROKEN/blocked: LLM tool-use path in agent/run.py is implemented but unverified — needs a real
+  ANTHROPIC_API_KEY smoke test (flagged above, not a stop-the-line blocker since --no-llm is the
+  committed P0 path per the issue's own fallback requirement).
+
 ## 2026-10-18 — Issues #15, #16, #17 (Sonnet session, continued): B4/B5/C1
 DONE:
   - #15 (B4): lib/queries.py `find_attack_paths(g, crown_jewel_id, limit)` using the exact
