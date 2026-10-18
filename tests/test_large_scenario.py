@@ -14,6 +14,12 @@ from lib import seed_taxonomy
 LARGE = os.path.join("data", "findings.large.json")
 
 
+def _committed(path):
+    """File bytes as committed (LF); a Windows checkout with core.autocrlf may hold CRLF."""
+    with open(path, "rb") as f:
+        return f.read().replace(b"\r\n", b"\n")
+
+
 def _generate(tmp_path, *args):
     out = tmp_path / "out.json"
     subprocess.run([sys.executable, "data/gen_findings.py", *args, "--out", str(out)],
@@ -22,13 +28,11 @@ def _generate(tmp_path, *args):
 
 
 def test_demo_output_is_still_byte_identical(tmp_path):
-    with open(os.path.join("data", "findings.json"), "rb") as f:
-        assert _generate(tmp_path) == f.read()
+    assert _generate(tmp_path) == _committed(os.path.join("data", "findings.json"))
 
 
 def test_large_is_deterministic_and_matches_the_committed_file(tmp_path):
-    with open(LARGE, "rb") as f:
-        committed = f.read()
+    committed = _committed(LARGE)
     assert _generate(tmp_path, "--scenario", "large") == committed
     assert _generate(tmp_path, "--scenario", "large") == committed
 
