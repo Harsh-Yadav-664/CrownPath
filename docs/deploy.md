@@ -58,3 +58,6 @@ cp agent/last_answer.json data/sample_answer.json
   minute to wake. Open the URL once before recording or submitting.
 - Fallback host if Render's free tier is unavailable: Railway, same start command and
   variables.
+- Python is pinned to 3.13.5 (`.python-version` and `PYTHON_VERSION` in `render.yaml`). Without it
+  Render defaults to Python 3.14, where the pinned `pydantic-core` has no wheel and the build fails
+  trying to compile it from source.

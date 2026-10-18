@@ -9,6 +9,10 @@ services:
     startCommand: uvicorn ui.app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /
     envVars:
+      # pydantic-core 2.33.2 (pinned in requirements.txt) has no wheel for Python 3.14,
+      # Render's default; pin the version everything was tested on.
+      - key: PYTHON_VERSION
+        value: 3.13.5
       - key: FALKORDB_HOST
         sync: false
       - key: FALKORDB_PORT
