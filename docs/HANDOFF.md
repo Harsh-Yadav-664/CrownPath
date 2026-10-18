@@ -3,6 +3,42 @@
 Each work session appends a dated block: what's DONE, what's NEXT, what's BROKEN/blocked.
 Newest block on top. (Issue #8 / A8 may expand this template; keep the newest-on-top rule.)
 
+## 2026-10-18 — BLOCKER on #20 (D1 MCP server) — stopped, flagging for a human decision
+**Problem:** BUILD_SPEC.md §12 freezes the submission layout with our own package at
+`crownpath/mcp/` (containing `mcp/server.py`), and separately requires the third-party `mcp`
+Python SDK (requirements.txt, `mcp==1.2.0`) for issue #20. These two things have the SAME
+import name and collide:
+- Whenever the repo root is on `sys.path` (the normal case for `python -m mcp.server`, for
+  `pytest` run from the repo root, or for any script executed from repo root — confirmed live:
+  `sys.path[0] == ''` resolves to the repo root), `import mcp` resolves to OUR OWN
+  `crownpath/mcp/__init__.py`, never to the installed SDK.
+- Confirmed live: `python -c "import mcp.server; print(mcp.server.__file__)"` from the repo
+  root prints `crownpath/mcp/server.py` (our own file), not the SDK.
+- Therefore `mcp/server.py` cannot do `from mcp.server.stdio import stdio_server` (the
+  issue's own prescribed SDK usage) — confirmed live: `ModuleNotFoundError: No module named
+  'mcp.server.stdio'; 'mcp.server' is not a package`, because `mcp.server` resolves to itself
+  (the very file being written), not the SDK's `server` subpackage.
+This is not a coding bug I can fix inside #20's scope without changing the frozen §12 layout
+or the package name `mcp` either for our own code or by renaming the dependency (not possible
+for a third-party package) — i.e. it is a design/architecture decision, not an implementation
+detail, per CLAUDE.md's "zero design decisions in implementation issues" rule.
+**Options for the human to decide** (not choosing one myself):
+1. Rename our local package from `mcp/` to something else (e.g. `mcp_server/`), update §12 and
+   all existing imports (none yet reference `crownpath.mcp` from outside, since #20 is the
+   first thing that would import it) — cleanest fix, but changes the frozen submission layout.
+2. Keep `mcp/server.py` as the file path (matches §12's reference literally) but have it import
+   the SDK via `importlib` tricks or by temporarily removing the repo root from `sys.path`
+   before importing the SDK, then restoring it — fragile, easy to get subtly wrong, avoided on
+   purpose rather than improvised.
+3. Drop the MCP server (it's P1, not P0 — "Never cut" in §9 does not list it) and rely on direct
+   `lib.tools` import for the agent, documenting in the README that MCP tool-exposure was
+   descoped due to a naming collision discovered during the build. Conflicts with "do not
+   pre-emptively cut" in §9/§14, so needs explicit human sign-off, not mine.
+**Did NOT do:** did not rename `mcp/__init__.py`/`mcp/server.py` or restructure the layout; did
+not implement any part of #20 beyond this investigation. Issue #20 is left OPEN.
+NEXT (once a human picks an option above): re-attempt #20 with that decision; #22 (D3 UI, P1)
+has no such conflict and can proceed independently in the meantime.
+
 ## 2026-10-18 — Issues #21, #19, #18 (Sonnet session, continued): D2/C3/C2 — Epic C done
 DONE:
   - #21 (D2): lib/chokepoints.py — `choke_points(g, crown_jewel_id)` (primary, deterministic:
