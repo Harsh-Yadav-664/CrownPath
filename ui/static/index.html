@@ -7,258 +7,370 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 <style>
   :root {
-    --bg: #0f1117;
-    --panel: #171a24;
-    --text: #e6e8ef;
-    --muted: #8b90a3;
-    --accent: #ff5d73;
-    --jewel: #ffd166;
-    --edge: #3a3f52;
+    --bg: #0f1117; --panel: #171a24; --panel2: #1e2230; --text: #e6e8ef; --muted: #8b90a3;
+    --accent: #ff5d73; --jewel: #ffd166; --edge: #2f3447; --ok: #6bd49a;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
-  }
-  header {
-    padding: 16px 20px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--edge);
-  }
-  h1 { margin: 0 0 4px; font-size: 18px; }
-  .tagline { color: var(--muted); font-size: 13px; }
-  .controls {
-    display: flex;
-    gap: 10px;
-    padding: 12px 20px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--edge);
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  button {
-    background: var(--accent);
-    color: #1a0d10;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  button.secondary {
-    background: transparent;
-    color: var(--text);
-    border: 1px solid var(--edge);
-  }
-  #headline {
-    font-size: 14px;
-    color: var(--jewel);
-    font-weight: 600;
-  }
   [hidden] { display: none !important; }
-  #agent-panel {
-    padding: 8px 20px;
-    max-height: 30vh;
-    overflow: auto;
-    border-bottom: 1px solid #2b3045;
-  }
-  #agent-banner {
-    display: inline-block;
-    margin-bottom: 6px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: #5c4a14;
-    color: #ffd666;
-    font-size: 12px;
-  }
-  #agent-answer {
-    margin: 0;
-    white-space: pre-wrap;
-    font-size: 12.5px;
-  }
-  #cy {
-    width: 100%;
-    height: calc(100vh - 118px);
-  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif; display: flex; flex-direction: column; }
+  header { padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--edge);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 18px; }
+  .tagline { color: var(--muted); font-size: 12.5px; }
+  .controls { display: flex; gap: 8px; padding: 8px 18px; background: var(--panel);
+    border-bottom: 1px solid var(--edge); flex-wrap: wrap; align-items: center; }
+  button { background: var(--accent); color: #1a0d10; border: none; padding: 7px 12px;
+    border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--edge); }
+  button.small { padding: 3px 8px; font-size: 12px; }
+  label.toggle { color: var(--muted); font-size: 12.5px; margin-left: auto; cursor: pointer; }
+  #headline { width: 100%; font-size: 14px; color: var(--jewel); font-weight: 600; min-height: 20px; }
+  main { flex: 1; display: grid; grid-template-columns: 1fr 440px; min-height: 0; }
+  #cy-wrap { position: relative; min-height: 360px; }
+  #cy { position: absolute; inset: 0; }
+  #legend { position: absolute; left: 10px; bottom: 10px; background: #171a24cc; border: 1px solid var(--edge);
+    border-radius: 6px; padding: 6px 10px; font-size: 11.5px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+  #legend i { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: middle; }
+  aside { background: var(--panel); border-left: 1px solid var(--edge); overflow-y: auto; padding: 12px 14px 40px; }
+  aside h2 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+  aside h2:first-child { margin-top: 0; }
+  .card { background: var(--panel2); border: 1px solid var(--edge); border-radius: 8px; padding: 9px 11px;
+    margin-bottom: 8px; font-size: 13px; }
+  .card.sel { border-color: var(--accent); }
+  .card.severed { opacity: .45; }
+  .card.severed .sum { text-decoration: line-through; }
+  .card .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; cursor: pointer; }
+  .score { color: var(--jewel); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sum { color: var(--text); margin-top: 4px; line-height: 1.4; }
+  .muted { color: var(--muted); }
+  .steps { margin: 8px 0 0; padding: 0; list-style: none; }
+  .steps li { padding: 5px 0 5px 12px; border-left: 2px solid var(--edge); font-size: 12.5px; line-height: 1.4; }
+  .steps li.find { border-left-color: var(--accent); }
+  .edge { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .formula { margin-top: 8px; font-size: 12px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
+  .bar { height: 8px; background: #2a2f42; border-radius: 4px; overflow: hidden; margin: 6px 0; }
+  .bar > div { height: 100%; background: var(--accent); }
+  .chip { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; background: #2a2f42; color: var(--muted); }
+  .chip.ok { background: #1c3a2b; color: var(--ok); }
+  .banner { display: inline-block; margin-bottom: 6px; padding: 2px 8px; border-radius: 4px;
+    background: #5c4a14; color: #ffd166; font-size: 12px; }
+  pre.answer { margin: 0; white-space: pre-wrap; font-size: 12px; line-height: 1.45; font-family: inherit; }
+  .fix { margin-top: 6px; padding: 6px 8px; background: #14261d; border-radius: 6px; font-size: 12px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { max-height: 60vh; border-left: 0; border-top: 1px solid var(--edge); } }
 </style>
 </head>
 <body>
 <header>
   <h1>CrownPath</h1>
-  <div class="tagline">An attack-path triage agent that reasons over how vulnerabilities chain, on FalkorDB.</div>
+  <div class="tagline">Risk is a path to a crown jewel, not a CVSS score. Every answer is a traced path through the FalkorDB graph.</div>
 </header>
 <div class="controls">
   <button id="trace-btn">Trace attack paths</button>
   <button id="choke-btn" class="secondary">Show choke point</button>
-  <button id="reset-btn" class="secondary">Reset view</button>
-  <button id="agent-btn" class="secondary">Ask the agent</button>
   <button id="changes-btn" class="secondary">What changed?</button>
-  <span id="headline"></span>
+  <button id="agent-btn" class="secondary">Ask the agent</button>
+  <button id="reset-btn" class="secondary">Reset view</button>
+  <label class="toggle"><input type="checkbox" id="taxonomy-toggle"> show technique taxonomy (77 nodes)</label>
+  <div id="headline"></div>
 </div>
-<div id="agent-panel" hidden>
-  <div id="agent-banner" hidden></div>
-  <pre id="agent-answer"></pre>
-</div>
-<div id="cy"></div>
-<script>
-const API_BASE = ""; // relative: works on any host (localhost, Cloud-backed deploy, etc.)
-const CROWN_JEWEL = "asset:db";
+<main>
+  <div id="cy-wrap">
+    <div id="cy"></div>
+    <div id="legend">
+      <span><i style="background:#8ad6c2;border-radius:50%"></i>endpoint</span>
+      <span><i style="background:#ff8fa3;transform:rotate(45deg)"></i>finding</span>
+      <span><i style="background:#c8a2ff"></i>identity</span>
+      <span><i style="background:#5aa9e6"></i>asset</span>
+      <span><i style="background:#ffd166"></i>crown jewel</span>
+    </div>
+  </div>
+  <aside>
+    <h2>Why this answer</h2>
+    <div id="why" class="card muted">Click <b>Show choke point</b>, or pick an attack path below to see exactly why it matters.</div>
 
-const COLOR_BY_TYPE = {
-  Asset: "#5aa9e6",
-  Endpoint: "#8ad6c2",
-  Finding: "#ff8fa3",
-  Identity: "#c8a2ff",
-  Technique: "#555b70",
+    <h2>Choke points &mdash; which single fix breaks the most paths</h2>
+    <div id="chokes"></div>
+
+    <h2>Attack paths to the crown jewel (ranked by likelihood &times; impact)</h2>
+    <div id="paths"></div>
+
+    <div id="agent-section" hidden>
+      <h2>Agent answer</h2>
+      <div id="agent-banner" class="banner" hidden></div>
+      <pre id="agent-answer" class="answer"></pre>
+    </div>
+
+    <div id="changes-section" hidden>
+      <h2>What changed between scans</h2>
+      <div id="changes" class="card"></div>
+    </div>
+
+    <div id="detail-section" hidden>
+      <h2>Selected node</h2>
+      <div id="detail" class="card"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const API = "";
+const JEWEL = "asset:db";
+const COLORS = { Asset: "#5aa9e6", Endpoint: "#8ad6c2", Finding: "#ff8fa3", Identity: "#c8a2ff", Technique: "#555b70" };
+const EDGE_PHRASE = {
+  EXPOSES: "serves", HAS_FINDING: "has the finding", GRANTS: "grants a session as", LEADS_TO: "leads to",
+  CAN_ACCESS: "can reach", CONNECTS_TO: "has network access to",
 };
 
-let cy;
+let cy, nodeData = {}, paths = [], chokes = [], selectedPath = null, headlineEl = document.getElementById("headline");
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const nodeSteps = (p) => p.steps.filter((s) => s.kind === "node");
+const props = (id) => (nodeData[id] && nodeData[id].props) || {};
+const title = (id) => (nodeData[id] ? nodeData[id].label : id);
 
-async function loadGraph() {
-  const res = await fetch(`${API_BASE}/api/graph`);
-  const { nodes, edges } = await res.json();
+async function getJSON(url) { const r = await fetch(API + url); return r.json(); }
 
-  cy = cytoscape({
-    container: document.getElementById("cy"),
-    elements: { nodes, edges },
-    style: [
-      {
-        selector: "node",
-        style: {
-          "background-color": (n) => COLOR_BY_TYPE[n.data("type")] || "#888",
-          label: "data(label)",
-          color: "#e6e8ef",
-          "font-size": 9,
-          "text-valign": "bottom",
-          "text-margin-y": 4,
-          width: 26,
-          height: 26,
-        },
-      },
-      {
-        selector: `node[id = "${CROWN_JEWEL}"]`,
-        style: { "background-color": "#ffd166", width: 40, height: 40, "border-width": 3, "border-color": "#fff" },
-      },
-      {
-        selector: "edge",
-        style: {
-          width: 1.5,
-          "line-color": "#3a3f52",
-          "target-arrow-color": "#3a3f52",
-          "target-arrow-shape": "triangle",
-          "curve-style": "bezier",
-          label: "data(label)",
-          "font-size": 7,
-          color: "#8b90a3",
-        },
-      },
-      {
-        selector: ".highlighted",
-        style: {
-          "line-color": "#ff5d73",
-          "target-arrow-color": "#ff5d73",
-          width: 3,
-        },
-      },
-      {
-        selector: ".highlighted-node",
-        style: { "border-width": 3, "border-color": "#ff5d73" },
-      },
-      {
-        selector: ".dimmed",
-        style: { opacity: 0.15 },
-      },
-      {
-        selector: ".choke",
-        style: { "background-color": "#ff5d73", width: 40, height: 40, "border-width": 3, "border-color": "#fff" },
-      },
-    ],
-    layout: { name: "cose", animate: false },
+function style() {
+  return [
+    { selector: "node", style: { "background-color": (n) => COLORS[n.data("type")] || "#888", label: "data(label)",
+        color: "#e6e8ef", "font-size": 11, "text-wrap": "wrap", "text-max-width": 110, "text-valign": "bottom",
+        "text-margin-y": 5, width: 30, height: 30, "text-outline-color": "#0f1117", "text-outline-width": 2 } },
+    { selector: 'node[type = "Finding"]', style: { shape: "diamond", width: 36, height: 36 } },
+    { selector: 'node[type = "Identity"]', style: { shape: "hexagon" } },
+    { selector: 'node[type = "Asset"]', style: { shape: "round-rectangle", width: 42, height: 34 } },
+    { selector: 'node[type = "Technique"]', style: { width: 14, height: 14, "font-size": 8, opacity: .7 } },
+    { selector: `node[id = "${JEWEL}"]`, style: { "background-color": "#ffd166", width: 56, height: 46, "border-width": 3, "border-color": "#fff" } },
+    { selector: "edge", style: { width: 1.5, "line-color": "#3a3f52", "target-arrow-color": "#3a3f52", "target-arrow-shape": "triangle",
+        "curve-style": "bezier", label: "data(label)", "font-size": 8, color: "#6f7590", "text-rotation": "autorotate",
+        "text-outline-color": "#0f1117", "text-outline-width": 2 } },
+    { selector: ".hl", style: { "line-color": "#ff5d73", "target-arrow-color": "#ff5d73", width: 3.5, color: "#ffb3be" } },
+    { selector: ".hl-node", style: { "border-width": 3, "border-color": "#ff5d73" } },
+    { selector: ".dimmed", style: { opacity: 0.12 } },
+    { selector: ".choke", style: { "background-color": "#ff5d73", width: 46, height: 46, "border-width": 3, "border-color": "#fff" } },
+    { selector: ".fixed", style: { "background-color": "#6bd49a", "border-width": 3, "border-color": "#fff" } },
+    { selector: ":selected", style: { "border-width": 3, "border-color": "#fff" } },
+  ];
+}
+
+function layout() {
+  const roots = cy.nodes().filter((n) => (props(n.id()).auth_required === false));
+  cy.layout({ name: "breadthfirst", directed: true, roots, spacingFactor: 1.35, padding: 30, animate: false }).run();
+  cy.fit(undefined, 30);
+}
+
+async function loadGraph(taxonomy) {
+  const { nodes, edges } = await getJSON(`/api/graph?taxonomy=${taxonomy ? "true" : "false"}`);
+  nodeData = {};
+  nodes.forEach((n) => (nodeData[n.data.id] = n.data));
+  if (cy) cy.destroy();
+  cy = cytoscape({ container: $("cy"), elements: { nodes, edges }, style: style(), wheelSensitivity: 0.25 });
+  if (taxonomy) cy.layout({ name: "cose", animate: false }).run(); else layout();
+  cy.on("tap", "node", (e) => showNode(e.target.id()));
+  cy.on("tap", (e) => { if (e.target === cy) hideNode(); });
+}
+
+/* ---------- explanation helpers (all numbers come from the graph) ---------- */
+function pathFindings(p) { return p.finding_ids.map((id) => ({ id, ...props(id) })); }
+
+function formula(p) {
+  const fs = pathFindings(p);
+  const jewel = props(JEWEL).value ?? "?";
+  const conf = fs.map((f) => Number(f.confidence).toFixed(2)).join(" &times; ") || "1";
+  return `score = ${conf} &times; ${jewel} (jewel value) &divide; ${p.length} hops = <b>${p.score.toFixed(2)}</b>`;
+}
+
+function summary(p) { return nodeSteps(p).map((s) => esc(title(s.id))).join(" &rarr; "); }
+
+function narrative(p) {
+  const steps = p.steps; const out = [];
+  for (let i = 0; i < steps.length; i += 2) {
+    const n = steps[i], d = props(n.id), edge = steps[i + 1], next = steps[i + 2];
+    let line = "";
+    if (i === 0) line = `An <b>anonymous</b> visitor can reach <b>${esc(title(n.id))}</b> (no login required).`;
+    else if (n.label === "Finding") {
+      line = `<b>${esc(d.title)}</b> <span class="chip ok">${esc(d.status)}</span> <span class="chip">confidence ${Number(d.confidence).toFixed(2)}</span> <span class="chip">${esc(d.cwe)}</span>`;
+      if (d.evidence) line += `<br><span class="muted">Evidence: ${esc(d.evidence)}</span>`;
+    } else if (n.label === "Identity") line = `The attacker now holds a <b>${esc(d.role)}</b> session.`;
+    else if (n.label === "Asset") line = n.id === JEWEL ? `<b>Crown jewel reached: ${esc(d.name)}</b> (business value ${d.value}).` : `Reaches <b>${esc(d.name)}</b>.`;
+    else line = `<b>${esc(title(n.id))}</b>`;
+    const via = edge ? `<div class="edge">&darr; ${esc(edge.label)}</div>` : "";
+    out.push(`<li class="${n.label === "Finding" ? "find" : ""}">${line}${via}</li>`);
+  }
+  return `<ol class="steps">${out.join("")}</ol>`;
+}
+
+/* ---------- graph highlighting ---------- */
+function clear() {
+  if (!cy) return;
+  cy.elements().removeClass("hl hl-node dimmed choke fixed");
+  selectedPath = null;
+  headlineEl.textContent = "";
+  renderPaths(); renderChokes();
+  $("why").className = "card muted";
+  $("why").innerHTML = "Click <b>Show choke point</b>, or pick an attack path below to see exactly why it matters.";
+}
+
+function highlightPath(p, dimOthers) {
+  const ids = nodeSteps(p).map((s) => s.id);
+  if (dimOthers) cy.elements().addClass("dimmed");
+  ids.forEach((id, i) => {
+    cy.getElementById(id).removeClass("dimmed").addClass("hl-node");
+    if (i < ids.length - 1) cy.edges(`[source = "${ids[i]}"][target = "${ids[i + 1]}"]`).removeClass("dimmed").addClass("hl");
   });
 }
 
-function clearHighlight() {
-  cy.elements().removeClass("highlighted highlighted-node dimmed choke");
-  document.getElementById("headline").textContent = "";
+function traceAll() {
+  clear();
+  paths.forEach((p) => highlightPath(p, false));
+  headlineEl.textContent = `${paths.length} attack paths from anonymous entry points to ${title(JEWEL)}.`;
+  $("why").className = "card";
+  $("why").innerHTML = `The graph holds <b>${paths.length}</b> routes an anonymous attacker can chain through <b>confirmed</b> findings to reach <b>${esc(title(JEWEL))}</b>. Only <b>confirmed</b> findings carry attack edges; the inconclusive CSRF finding is on <b>0</b> paths. Paths are ranked by likelihood &times; impact, not CVSS.`;
 }
 
-function highlightPathEdges(path) {
-  const nodeIds = path.steps.filter((s) => s.kind === "node").map((s) => s.id);
-  for (let i = 0; i < nodeIds.length - 1; i++) {
-    const edge = cy.edges(`[source = "${nodeIds[i]}"][target = "${nodeIds[i + 1]}"]`);
-    edge.addClass("highlighted");
-  }
-  nodeIds.forEach((id) => cy.getElementById(id).addClass("highlighted-node"));
+function selectPath(i) {
+  const p = paths[i];
+  cy.elements().removeClass("hl hl-node dimmed choke fixed");
+  highlightPath(p, true);
+  selectedPath = i;
+  headlineEl.textContent = `Path #${i + 1}: ${nodeSteps(p).map((s) => title(s.id)).join(" → ")}`;
+  renderPaths();
+  $("why").className = "card";
+  $("why").innerHTML = `<b>Why this path matters</b><div class="muted">${p.length} hops, ${p.finding_ids.length} chained findings</div>${narrative(p)}<div class="formula">${formula(p)}</div>`;
 }
 
-async function traceAttackPaths() {
-  clearHighlight();
-  const res = await fetch(`${API_BASE}/api/paths?crown_jewel=${CROWN_JEWEL}`);
-  const { paths } = await res.json();
-  paths.forEach(highlightPathEdges);
-  document.getElementById("headline").textContent = `${paths.length} attack path(s) to the crown jewel`;
+/* ---------- panel renderers ---------- */
+function renderPaths(severedKeys) {
+  const sev = severedKeys || window.__severed || new Set();
+  $("paths").innerHTML = paths.map((p, i) => {
+    const key = nodeSteps(p).map((s) => s.id).join(">");
+    const cut = sev.has(key);
+    return `<div class="card ${selectedPath === i ? "sel" : ""} ${cut ? "severed" : ""}">
+      <div class="top" data-i="${i}"><span><b>#${i + 1}</b> ${cut ? "&#9986; severed" : ""}</span><span class="score">${p.score.toFixed(2)}</span></div>
+      <div class="sum">${summary(p)}</div>
+      ${selectedPath === i ? `<div class="formula">${formula(p)}</div>` : ""}</div>`;
+  }).join("");
+  document.querySelectorAll("#paths .top").forEach((el) => el.addEventListener("click", () => selectPath(+el.dataset.i)));
+}
+
+function renderChokes() {
+  $("chokes").innerHTML = chokes.filter((c) => c.paths_severed > 0).slice(0, 4).map((c, i) => `
+    <div class="card">
+      <div class="top"><span><b>${esc(c.title)}</b> ${c.severs_highest_value ? '<span class="chip ok">on the highest-value path</span>' : ""}</span>
+        <span class="score">${c.paths_severed}/${c.paths_total}</span></div>
+      <div class="bar"><div style="width:${(100 * c.paths_severed) / c.paths_total}%"></div></div>
+      <div class="muted">Fixing this one finding severs ${c.paths_severed} of ${c.paths_total} paths.</div>
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="small" data-sim="${esc(c.finding_id)}">Simulate fix</button>
+        <button class="small secondary" data-ticket="${esc(c.finding_id)}">Copy fix ticket</button></div>
+      <div id="sim-${i}-${esc(c.finding_id).replace(/[^a-z0-9]/gi, "_")}"></div>
+    </div>`).join("");
+  document.querySelectorAll("[data-sim]").forEach((b) => b.addEventListener("click", () => simulate(b.dataset.sim)));
+  document.querySelectorAll("[data-ticket]").forEach((b) => b.addEventListener("click", () => ticket(b.dataset.ticket, b)));
 }
 
 async function showChokePoint() {
-  clearHighlight();
-  const res = await fetch(`${API_BASE}/api/chokepoints?crown_jewel=${CROWN_JEWEL}`);
-  const { choke_points, headline } = await res.json();
-  if (!choke_points || choke_points.length === 0) return;
-
-  const top = choke_points[0];
+  clear();
+  const top = chokes[0];
+  if (!top) return;
   cy.elements().addClass("dimmed");
-  const chokeNode = cy.getElementById(top.finding_id);
-  chokeNode.removeClass("dimmed").addClass("choke");
-
-  // highlight the finding's neighbourhood so the severed region is visible
-  chokeNode.closedNeighborhood().removeClass("dimmed");
-
-  document.getElementById("headline").textContent = headline || "";
+  paths.filter((p) => p.finding_ids.includes(top.finding_id)).forEach((p) => highlightPath(p, false));
+  cy.getElementById(top.finding_id).removeClass("dimmed").addClass("choke");
+  headlineEl.textContent = (await getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`)).headline || "";
+  const d = props(top.finding_id);
+  $("why").className = "card";
+  $("why").innerHTML = `<b>${esc(top.title)}</b> sits on <b>${top.paths_severed} of ${top.paths_total}</b> attack paths${top.severs_highest_value ? ", including the highest-value one" : ""}. Remove it and those paths collapse; no severity-sorted list can tell you that, because it only exists as a property of the graph.
+    <div class="fix"><b>Fix:</b> ${esc(d.fix || "see remediation guidance")}</div>
+    <div class="muted" style="margin-top:6px">CVSS ${d.cvss} is shown for context only; it was not used for ranking.</div>`;
 }
 
-async function askAgent() {
-  const panel = document.getElementById("agent-panel");
-  const banner = document.getElementById("agent-banner");
-  const out = document.getElementById("agent-answer");
-  panel.hidden = false;
-  banner.hidden = true;
-  out.textContent = "Asking the agent...";
-  try {
-    const res = await fetch(`${API_BASE}/api/agent?crown_jewel=${CROWN_JEWEL}`);
-    const data = await res.json();
-    out.textContent = data.answer || "";
-    if (data.sample_response) {
-      banner.textContent = `Sample response (${data.reason || "recorded run"})`;
-      banner.hidden = false;
-    }
-  } catch (e) {
-    out.textContent = "The agent is unavailable right now. Use the buttons above to explore the graph.";
+async function simulate(findingId) {
+  const res = await getJSON(`/api/whatif?finding=${encodeURIComponent(findingId)}&crown_jewel=${JEWEL}`);
+  const remain = new Set(res.remaining.map((r) => r.join(">")));
+  const severed = new Set(paths.map((p) => nodeSteps(p).map((s) => s.id).join(">")).filter((k) => !remain.has(k)));
+  window.__severed = severed;
+  cy.elements().removeClass("hl hl-node dimmed choke fixed");
+  cy.elements().addClass("dimmed");
+  paths.forEach((p) => { if (remain.has(nodeSteps(p).map((s) => s.id).join(">"))) highlightPath(p, false); });
+  cy.getElementById(findingId).removeClass("dimmed").addClass("fixed");
+  const best = paths[0] ? nodeSteps(paths[0]).map((s) => s.id).join(">") : null;
+  headlineEl.textContent = `If ${title(findingId)} is fixed: ${severed.size} of ${paths.length} paths severed, ${remain.size} remain.`;
+  $("why").className = "card";
+  $("why").innerHTML = `<b>Simulated fix:</b> ${esc(title(findingId))}<br>FalkorDB re-ran the attack-path query with this finding removed (graph untouched): <b>${remain.size}</b> of ${paths.length} paths remain${best && severed.has(best) ? ", and the highest-value path is cut." : "."}
+    <div class="muted" style="margin-top:6px">Remaining: ${res.remaining.map((r) => r.filter((id) => id.startsWith("f:")).map((id) => esc(title(id))).join(" + ")).join("; ") || "none"}</div>`;
+  renderPaths(severed);
+}
+
+function ticket(findingId, btn) {
+  const c = chokes.find((x) => x.finding_id === findingId); const d = props(findingId);
+  const ps = paths.filter((p) => p.finding_ids.includes(findingId));
+  const md = `## Fix: ${c.title}\n\n**Why first:** it lies on ${c.paths_severed} of ${c.paths_total} attack paths to ${title(JEWEL)}` +
+    `${c.severs_highest_value ? ", including the highest-value path" : ""}.\n\n**Remediation:** ${d.fix || "n/a"}\n\n**Paths severed:**\n` +
+    ps.map((p, i) => `${i + 1}. ${nodeSteps(p).map((s) => title(s.id)).join(" -> ")} (score ${p.score.toFixed(2)})`).join("\n") +
+    `\n\n_Evidence: ${d.status}, confidence ${d.confidence}, ${d.cwe}. CVSS ${d.cvss} not used for ranking. Generated by CrownPath from the FalkorDB attack-path graph._`;
+  navigator.clipboard.writeText(md).then(() => { const t = btn.textContent; btn.textContent = "Copied!"; setTimeout(() => (btn.textContent = t), 1500); })
+    .catch(() => { $("why").className = "card"; $("why").innerHTML = `<pre class="answer">${esc(md)}</pre>`; });
+}
+
+function showNode(id) {
+  const d = nodeData[id]; if (!d) return; const p = d.props;
+  let html = `<b>${esc(d.label)}</b> <span class="chip">${esc(d.type)}</span>`;
+  if (d.type === "Finding") {
+    html += `<div style="margin-top:6px"><span class="chip ok">${esc(p.status)}</span> <span class="chip">confidence ${p.confidence}</span> <span class="chip">${esc(p.cwe)}</span> <span class="chip">CVSS ${p.cvss} (not used for ranking)</span></div>`;
+    const on = paths.filter((x) => x.finding_ids.includes(id)).length;
+    html += `<div class="muted" style="margin-top:6px">${p.status === "confirmed" ? `On ${on} of ${paths.length} attack paths.` : "Not confirmed: carries no attack edges, so it lies on no path."}</div>`;
+    if (p.evidence) html += `<div style="margin-top:6px">Evidence: ${esc(p.evidence)}</div>`;
+    if (p.fix) html += `<div class="fix"><b>Fix:</b> ${esc(p.fix)}</div>`;
+  } else if (d.type === "Asset") {
+    html += `<div class="muted" style="margin-top:6px">${esc(p.type)} &middot; value ${p.value}${p.is_crown_jewel ? " &middot; CROWN JEWEL" : ""}</div>`;
+  } else if (d.type === "Endpoint") {
+    html += `<div class="muted" style="margin-top:6px">${p.auth_required ? "login required" : "anonymous entry point (no login)"}</div>`;
+  } else if (d.type === "Identity") {
+    html += `<div class="muted" style="margin-top:6px">privilege level ${p.privilege_level}</div>`;
   }
+  $("detail").innerHTML = html; $("detail-section").hidden = false;
+}
+function hideNode() { $("detail-section").hidden = true; }
+
+async function askAgent() {
+  $("agent-section").hidden = false; $("agent-banner").hidden = true; $("agent-answer").textContent = "Asking the agent...";
+  $("agent-section").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  try {
+    const data = await getJSON(`/api/agent?crown_jewel=${JEWEL}`);
+    $("agent-answer").textContent = data.answer || "";
+    if (data.sample_response) { $("agent-banner").textContent = `Sample response (${data.reason || "recorded run"})`; $("agent-banner").hidden = false; }
+    else { $("agent-banner").textContent = data.source === "llm" ? "Answered live by the LLM using graph tools" : "Answered from the graph (no LLM needed)"; $("agent-banner").hidden = false; }
+  } catch (e) { $("agent-answer").textContent = "The agent is unavailable right now; the graph panels above still work."; }
 }
 
 async function showChanges() {
-  clearHighlight();
-  const res = await fetch(`${API_BASE}/api/changes?crown_jewel=${CROWN_JEWEL}`);
-  const data = await res.json();
-  const headline = document.getElementById("headline");
-  if (!data.available) {
-    headline.textContent = "No scan history recorded in this graph.";
-    return;
-  }
-  headline.textContent = data.headline;
-  data.added.forEach((f) => cy.getElementById(f.finding_id).addClass("choke"));
-  data.regressed.forEach((r) => cy.getElementById(r.asset_id).addClass("highlighted-node"));
+  clear();
+  const d = await getJSON(`/api/changes?crown_jewel=${JEWEL}`);
+  $("changes-section").hidden = false;
+  if (!d.available) { $("changes").textContent = "No scan history recorded in this graph."; return; }
+  headlineEl.textContent = d.headline;
+  d.added.forEach((f) => cy.getElementById(f.finding_id).addClass("choke"));
+  d.regressed.forEach((r) => cy.getElementById(r.asset_id).addClass("hl-node"));
+  $("changes").innerHTML = `<b>${esc(d.since)} &rarr; ${esc(d.until)}</b><br>Crown-jewel paths: <b>${d.paths.since} &rarr; ${d.paths.until}</b><br>` +
+    `Added: ${d.added.map((f) => esc(f.title)).join(", ") || "none"}<br>Removed: ${d.removed.map((f) => esc(f.title)).join(", ") || "none"}<br>` +
+    `Regressed: ${d.regressed.map((r) => `<b>${esc(r.asset_name)}</b> (+${r.new_paths} paths via ${esc(title(r.finding_id))})`).join(", ") || "none"}`;
 }
 
-document.getElementById("changes-btn").addEventListener("click", showChanges);
-document.getElementById("agent-btn").addEventListener("click", askAgent);
-document.getElementById("trace-btn").addEventListener("click", traceAttackPaths);
-document.getElementById("choke-btn").addEventListener("click", showChokePoint);
-document.getElementById("reset-btn").addEventListener("click", clearHighlight);
+$("trace-btn").addEventListener("click", traceAll);
+$("choke-btn").addEventListener("click", showChokePoint);
+$("changes-btn").addEventListener("click", showChanges);
+$("agent-btn").addEventListener("click", askAgent);
+$("reset-btn").addEventListener("click", () => { window.__severed = null; clear(); if (cy) layout(); });
+$("taxonomy-toggle").addEventListener("change", async (e) => { await loadGraph(e.target.checked); });
 
-loadGraph();
+(async function init() {
+  await loadGraph(false);
+  const [p, c] = await Promise.all([getJSON(`/api/paths?crown_jewel=${JEWEL}`), getJSON(`/api/chokepoints?crown_jewel=${JEWEL}`)]);
+  paths = (p.paths || []).slice().sort((a, b) => b.score - a.score);
+  chokes = c.choke_points || [];
+  renderPaths(); renderChokes();
+})();
 </script>
 </body>
 </html>

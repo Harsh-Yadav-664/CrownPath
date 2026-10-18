@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 from agent import format as agent_format
 from agent import run as agent_run
-from lib import graph, tools
+from lib import graph, queries, tools
 
 load_dotenv()
 
@@ -47,23 +47,41 @@ def index():
 
 
 @app.get("/api/graph")
-def get_graph():
-    """The full demo graph as Cytoscape elements: {nodes, edges}."""
+def get_graph(taxonomy: bool = False):
+    """The demo graph as Cytoscape elements: {nodes, edges}. By default only the estate
+    (Asset, Endpoint, Finding, Identity); `taxonomy=true` adds the 77 Technique nodes
+    and INSTANCE_OF / CHAINS_TO edges. Each node carries its properties (`props`) so
+    the page can explain it; findings also carry their technique and fix text."""
     g = tools._get_graph()
 
+    where = "" if taxonomy else "WHERE NOT n:Technique "
     node_rows = graph.run(
-        g, "MATCH (n) RETURN labels(n)[0] AS label, n.id AS id, properties(n) AS props"
+        g,
+        f"MATCH (n) {where}RETURN labels(n)[0] AS label, n.id AS id, properties(n) AS props",
     ).result_set
+
+    technique_of = dict(
+        graph.run(g, "MATCH (f:Finding)-[:INSTANCE_OF]->(t:Technique) RETURN f.id, t.id").result_set
+    )
+    fixes = agent_format._load_remediation_map()
+
     nodes = []
     for label, node_id, props in node_rows:
-        display = props.get("name") or props.get("title") or props.get("url") or node_id
-        nodes.append({"data": {"id": node_id, "label": display, "type": label}})
+        display = props.get("name") or props.get("title") or props.get("url") or props.get("role") or node_id
+        if label == "Endpoint":
+            display = f"{props.get('method', '')} {props.get('url', node_id)}".strip()
+        props = {k: v for k, v in props.items() if k not in ("scans",)}
+        if label == "Finding":
+            props["technique"] = technique_of.get(node_id)
+            props["fix"] = fixes.get(technique_of.get(node_id))
+        nodes.append({"data": {"id": node_id, "label": display, "type": label, "props": props}})
 
+    edge_where = "" if taxonomy else "WHERE NOT a:Technique AND NOT b:Technique "
     edge_rows = graph.run(
         g,
-        """
+        f"""
         MATCH (a)-[r]->(b)
-        RETURN a.id AS source, b.id AS target, type(r) AS label
+        {edge_where}RETURN a.id AS source, b.id AS target, type(r) AS label
         """,
     ).result_set
     edges = [
@@ -74,9 +92,21 @@ def get_graph():
     return {"nodes": nodes, "edges": edges}
 
 
+@app.get("/api/whatif")
+def get_whatif(finding: str, crown_jewel: str = "asset:db"):
+    """What if `finding` were fixed? FalkorDB re-runs 7a with that finding excluded and
+    returns the paths that remain (non-destructive)."""
+    from lib import chokepoints as cp_module
+
+    g = tools._get_graph()
+    remaining = cp_module.paths_after_fix(g, finding, crown_jewel)
+    return {"finding": finding, "crown_jewel": crown_jewel, "remaining": remaining}
+
+
 @app.get("/api/paths")
 def get_paths(crown_jewel: str = "asset:db"):
-    paths = tools.find_attack_paths(crown_jewel_id=crown_jewel)
+    # 7a enumeration + 7b score, ranked best-first (likelihood x impact).
+    paths = queries.rank_paths(tools._get_graph(), crown_jewel_id=crown_jewel, limit=None)
     return {"paths": [_public_attack_path(p) for p in paths], "crown_jewel": crown_jewel}
 
 

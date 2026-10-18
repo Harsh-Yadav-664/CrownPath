@@ -112,3 +112,21 @@ def headline(cp, jewel_name):
     if cp["severs_highest_value"]:
         return base + ", including the highest-value one."
     return base + "."
+
+
+_AFTER_FIX = f"""
+MATCH path = (e:Endpoint {{auth_required:false}})
+      -[:{_EDGES}*1..8]->
+      (j:Asset {{is_crown_jewel:true, id:$jid}})
+WHERE none(n IN nodes(path) WHERE n.id = $fid)
+RETURN [n IN nodes(path) | n.id]
+"""
+
+
+def paths_after_fix(g, finding_id, crown_jewel_id):
+    """Non-destructive what-if: re-run 7a with `finding_id` treated as fixed (excluded
+    from every path) and return the node-id sequences of the paths that REMAIN. Same
+    result as deleting the node and re-running 7a (verified, docs/graph-model.md), but
+    the graph is left untouched."""
+    rows = graph.run(g, _AFTER_FIX, {"jid": crown_jewel_id, "fid": finding_id}).result_set
+    return [row[0] for row in rows]
